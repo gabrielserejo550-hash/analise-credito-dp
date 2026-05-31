@@ -2927,7 +2927,14 @@ async function salvarTudo() {
     let msg = '✅ Tudo salvo com sucesso!';
     if (isNovo && temDocs) msg += ` Planilha + ${totalEnviados} arquivo(s) no Drive.`;
     else msg += ' Análise registrada na planilha.';
-    if (pastaUrl) msg += `\n📁 Pasta: ${pastaUrl}`;
+    if (pastaUrl) {
+      msg += `\n📁 Pasta: ${pastaUrl}`;
+      // Salva URL da pasta no registro e atualiza na planilha
+      if (ultimoRegistro) {
+        ultimoRegistro['Pasta Drive'] = pastaUrl;
+        try { await gsPost({ action: 'salvar_analise', registro: ultimoRegistro }); } catch(e) {}
+      }
+    }
     showGsStatus('saved', msg);
     btn.textContent = '✅ Salvo!';
     setTimeout(() => { btn.disabled = false; btn.textContent = '💾 Salvar Planilha + Arquivos'; }, 3500);
@@ -3637,6 +3644,7 @@ function renderConsultaResultados(lista, offset) {
             <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">Analista: <strong style="color:var(--text)">${analista}</strong> &nbsp;·&nbsp; Data: <strong style="color:var(--text)">${data}</strong></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button onclick="gerarDocumento(${idx})" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#0e2a1a;border:1px solid #1e5c32;color:#4ade80;font-family:var(--mono);font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='#4ade80'" onmouseout="this.style.borderColor='#1e5c32'">📄 Gerar Documento</button>
+              ${a['Pasta Drive'] ? `<button onclick="window.open('${a['Pasta Drive']}','_blank')" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#1a0e2a;border:1px solid #5c1e9e;color:#c084fc;font-family:var(--mono);font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='#c084fc'" onmouseout="this.style.borderColor='#5c1e9e'">📎 Anexos</button>` : ''}
               <button onclick="duplicarAnalise(${idx})" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#0e1a2a;border:1px solid #1e3a5c;color:#60a5fa;font-family:var(--mono);font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='#60a5fa'" onmouseout="this.style.borderColor='#1e3a5c'">📋 Duplicar análise</button>
             </div>
           </div>
