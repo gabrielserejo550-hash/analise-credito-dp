@@ -65,9 +65,15 @@
     background: var(--bg);
   }
 
+  @keyframes gradOscila {
+    0%   { background-position: 0% 50%; }
+    25%  { background-position: 100% 50%; }
+    50%  { background-position: 50% 100%; }
+    75%  { background-position: 0% 50%; }
+    100% { background-position: 0% 50%; }
+  }
   .auth-left {
     flex: 1;
-    background: var(--bg2);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -76,6 +82,9 @@
     position: relative;
     overflow: hidden;
     border-right: 1px solid var(--border);
+    background: linear-gradient(135deg, #0a1628, #1a0a2e, #6b0000, #1a3a6b, #6b4400, #0a1628);
+    background-size: 400% 400%;
+    animation: gradOscila 8s ease infinite;
   }
 
   /* Linhas de grade decorativas no painel esquerdo */
@@ -1127,12 +1136,12 @@
 </svg>
       </div>
       <h1>Análise de Crédito DP</h1>
-      <p>Sistema de Crédito B2B — Peças de Moto</p>
+      <p>Sistema de Análise de Crédito — Setor de Peças</p>
     </div>
     <div class="auth-left-tagline">
       <div class="auth-kpi-row">
         <div class="auth-kpi"><span class="auth-kpi-val">100%</span><span class="auth-kpi-lbl">Offline</span></div>
-        <div class="auth-kpi"><span class="auth-kpi-val">B2B</span><span class="auth-kpi-lbl">Segmento</span></div>
+        <div class="auth-kpi"><span class="auth-kpi-val">DP</span><span class="auth-kpi-lbl">Setor</span></div>
         <div class="auth-kpi"><span class="auth-kpi-val">v2</span><span class="auth-kpi-lbl">Versão</span></div>
       </div>
       <div class="auth-feature-list">
@@ -1303,7 +1312,7 @@
   <h1>Análise de Crédito DP</h1>
   <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     <span class="date-badge" id="header-date"></span>
-    <span class="header-tag">CRÉDITO B2B</span>
+    <span class="header-tag">ANÁLISE DE CRÉDITO DP</span>
     <div class="user-badge"><div class="u-avatar" id="user-avatar">?</div><span class="u-name" id="user-display">—</span></div>
     <button class="btn-logout" onclick="doLogout()">Sair</button>
   </div>
@@ -1697,7 +1706,10 @@
 
       <!-- Filtro por período -->
       <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
-        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:8px;">📅 Filtrar por período</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+          <div style="font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:700;">📅 Filtrar por período</div>
+          <button id="btn-ordem" onclick="toggleOrdem()" style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:#0e1a2a;border:1px solid #1e3a5c;color:#60a5fa;font-family:var(--mono);font-size:10px;font-weight:700;border-radius:6px;cursor:pointer;transition:all 0.15s;">↓ Mais recente primeiro</button>
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <button onclick="setPeriodo('hoje')" id="periodo-hoje" class="filtro-btn">Hoje</button>
           <button onclick="setPeriodo('semana')" id="periodo-semana" class="filtro-btn">Esta semana</button>
@@ -2104,8 +2116,8 @@ function enterApp(user) {
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app-screen').style.display='block';
   const initials = user.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-  document.getElementById('user-avatar').textContent=initials;
-  document.getElementById('user-display').textContent=user.name;
+  document.getElementById('user-avatar').textContent='AC';
+  document.getElementById('user-display').textContent='Analista de Crédito';
   document.getElementById('analyst-name-display').textContent=user.name;
   document.getElementById('header-date').textContent=todayStr();
   atualizarContador();
@@ -3404,6 +3416,17 @@ async function buscarAnalises() {
       });
     }
 
+    // Ordenação crescente/decrescente por data
+    todasAnalises.sort((a, b) => {
+      const parseData = (str) => {
+        if (!str) return 0;
+        const p = str.split(',')[0].trim().split('/');
+        if (p.length < 3) return 0;
+        return new Date(p[2], p[1]-1, p[0]).getTime();
+      };
+      const da = parseData(a['Data']), db = parseData(b['Data']);
+      return _ordemDecrescente ? db - da : da - db;
+    });
     _resultadosAtuais = todasAnalises;
     const total = _resultadosAtuais.length;
 
@@ -3656,6 +3679,19 @@ function renderConsultaResultados(lista, offset) {
 
 // ── FILTRO POR PERÍODO ──
 let _periodoAtivo = '';
+let _ordemDecrescente = true;
+
+function toggleOrdem() {
+  _ordemDecrescente = !_ordemDecrescente;
+  const btn = document.getElementById('btn-ordem');
+  if (btn) {
+    btn.textContent = _ordemDecrescente ? '↓ Mais recente primeiro' : '↑ Mais antigo primeiro';
+    btn.style.color = _ordemDecrescente ? '#60a5fa' : '#a78bfa';
+    btn.style.borderColor = _ordemDecrescente ? '#1e3a5c' : '#5c1e9e';
+    btn.style.background = _ordemDecrescente ? '#0e1a2a' : '#1a0e2a';
+  }
+  buscarAnalises();
+}
 
 function setPeriodo(tipo) {
   _periodoAtivo = tipo;
