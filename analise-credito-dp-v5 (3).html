@@ -1,0 +1,4087 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análise de Crédito DP</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg:       #0b0e14;
+    --bg2:      #0f1319;
+    --surface:  #141820;
+    --surface2: #1a1f2c;
+    --surface3: #1f2535;
+    --border:   #252d3d;
+    --border2:  #2e3850;
+
+    --accent:   #3b7eff;
+    --accent-h: #5291ff;
+    --accent-d: #2460d4;
+    --accent2:  #f5a623;
+    --green:    #00c48c;
+    --yellow:   #f5a623;
+    --red:      #ff4d6a;
+    --orange:   #ff8040;
+    --blue:     #3b7eff;
+    --purple:   #8b5cf6;
+
+    --text:     #e2e8f4;
+    --text2:    #8b95a8;
+    --text3:    #5a6378;
+    --muted:    #5a6378;
+
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'IBM Plex Sans', sans-serif;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
+    --shadow:    0 4px 20px rgba(0,0,0,0.5);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,0.6);
+
+    --radius:   8px;
+    --radius-lg:12px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 14px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    font-weight: 400;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ════════════════════════════════════════
+     AUTH SCREEN
+  ════════════════════════════════════════ */
+  #auth-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: stretch;
+    background: var(--bg);
+  }
+
+  .auth-left {
+    flex: 1;
+    background: var(--bg2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 48px;
+    position: relative;
+    overflow: hidden;
+    border-right: 1px solid var(--border);
+  }
+
+  /* Linhas de grade decorativas no painel esquerdo */
+  .auth-left::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.35;
+  }
+  .auth-left::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 60% at 50% 40%, rgba(59,126,255,0.08) 0%, transparent 70%);
+  }
+
+  .auth-left-brand {
+    z-index: 2;
+    text-align: center;
+    position: relative;
+  }
+
+  .auth-left-logo {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, var(--accent) 0%, #2460d4 100%);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    box-shadow: 0 0 0 1px rgba(59,126,255,0.4), 0 8px 32px rgba(59,126,255,0.3);
+  }
+  .auth-left-logo svg { width: 40px; height: 40px; }
+
+  .auth-left-brand h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+  .auth-left-brand p {
+    font-size: 12px;
+    color: var(--text3);
+    font-family: var(--mono);
+    letter-spacing: 0.5px;
+  }
+
+  .auth-left-tagline {
+    margin-top: 48px;
+    z-index: 2;
+    position: relative;
+    max-width: 320px;
+  }
+
+  .auth-kpi-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .auth-kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    text-align: center;
+  }
+  .auth-kpi-val {
+    font-size: 20px;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--accent);
+    display: block;
+  }
+  .auth-kpi-lbl {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: var(--mono);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    display: block;
+    margin-top: 3px;
+  }
+
+  .auth-feature-list {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .auth-feature-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text2);
+    font-family: var(--mono);
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .auth-feature-list li:last-child { border-bottom: none; }
+  .auth-feature-list li span.dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .auth-right {
+    width: 460px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 48px;
+    background: var(--bg);
+  }
+
+  .auth-box {
+    width: 100%;
+    max-width: 360px;
+    animation: fadeUp 0.4s ease;
+  }
+
+  .auth-heading {
+    margin-bottom: 28px;
+  }
+  .auth-heading h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.4px;
+    margin-bottom: 4px;
+  }
+  .auth-heading p {
+    font-size: 12px;
+    color: var(--text3);
+    font-family: var(--mono);
+  }
+
+  .auth-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 24px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 3px;
+    border: 1px solid var(--border);
+  }
+  .auth-tab {
+    flex: 1;
+    padding: 7px 4px;
+    text-align: center;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text3);
+    border: none;
+    background: none;
+    letter-spacing: 0.2px;
+  }
+  .auth-tab.active {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .auth-field { margin-bottom: 14px; }
+  .auth-field label {
+    display: block;
+    font-size: 11px;
+    color: var(--text3);
+    font-family: var(--mono);
+    margin-bottom: 5px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .auth-field input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 11px 14px;
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .auth-field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59,126,255,0.15);
+  }
+
+  .btn-auth {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    margin-top: 6px;
+    transition: all 0.15s;
+    letter-spacing: 0.2px;
+  }
+  .btn-auth:hover {
+    background: var(--accent-h);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(59,126,255,0.4);
+  }
+  .btn-auth:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .auth-error {
+    background: rgba(255,77,106,0.08);
+    border: 1px solid rgba(255,77,106,0.3);
+    color: #ff6b82;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    margin-top: 10px;
+    display: none;
+  }
+  .auth-success {
+    background: rgba(0,196,140,0.08);
+    border: 1px solid rgba(0,196,140,0.3);
+    color: var(--green);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    margin-top: 10px;
+    display: none;
+  }
+
+  .users-list { margin-top: 18px; }
+  .users-list-title {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: var(--mono);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .user-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .user-item .u-name { color: var(--text); font-weight: 500; }
+  .user-item .u-del {
+    color: var(--red);
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+    font-size: 14px;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .user-item .u-del:hover { opacity: 1; }
+
+  /* ════════════════════════════════════════
+     APP SCREEN
+  ════════════════════════════════════════ */
+  #app-screen { display: none; }
+
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--bg2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 56px;
+  }
+
+  .logo-icon {
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(135deg, var(--accent) 0%, #2460d4 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-icon svg { width: 22px; height: 22px; }
+
+  .header-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--border2);
+    margin: 0 4px;
+  }
+
+  .header h1 {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+    color: var(--text);
+  }
+
+  .header-tag {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: var(--mono);
+    background: var(--surface2);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    letter-spacing: 0.5px;
+  }
+
+  .date-badge {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: var(--mono);
+    background: var(--surface);
+    padding: 3px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .user-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .user-badge .u-avatar {
+    width: 24px;
+    height: 24px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .user-badge .u-name { color: var(--text); font-weight: 500; }
+
+  .btn-logout {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-left: 4px;
+  }
+  .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+  /* ════════════════════════════════════════
+     MAIN / LAYOUT
+  ════════════════════════════════════════ */
+  .main {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 28px 24px 80px;
+  }
+
+  /* ════════════════════════════════════════
+     SEÇÃO TÍTULO
+  ════════════════════════════════════════ */
+  .section-title {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--accent);
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+  }
+
+  /* ════════════════════════════════════════
+     CARDS
+  ════════════════════════════════════════ */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(59,126,255,0.2), transparent);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+  /* ════════════════════════════════════════
+     INPUTS
+  ════════════════════════════════════════ */
+  label {
+    display: block;
+    font-size: 10px;
+    color: var(--text3);
+    font-family: var(--mono);
+    margin-bottom: 5px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  input, select, textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 9px 12px;
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    appearance: none;
+  }
+  input:hover, select:hover, textarea:hover { border-color: var(--border2); }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59,126,255,0.12);
+  }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235a6378' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+  }
+  select option { background: var(--surface2); color: var(--text); }
+  textarea { resize: vertical; min-height: 60px; }
+  .field { margin-bottom: 0; }
+
+  /* ════════════════════════════════════════
+     NAVEGAÇÃO PRINCIPAL
+  ════════════════════════════════════════ */
+  .nav-bar {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 4px;
+  }
+  .nav-btn {
+    flex: 1;
+    padding: 9px 12px;
+    border: none;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.2px;
+  }
+  .nav-btn:hover { color: var(--text); background: var(--surface2); }
+  .nav-btn.active {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* ════════════════════════════════════════
+     TABS CLIENTE TIPO
+  ════════════════════════════════════════ */
+  .tab-row { display: flex; gap: 6px; margin-bottom: 20px; }
+  .tab {
+    padding: 8px 20px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .tab:hover { border-color: var(--border2); color: var(--text); }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ════════════════════════════════════════
+     ABA DOCUMENTOS (cliente novo)
+  ════════════════════════════════════════ */
+  .doc-subtabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .doc-subtab {
+    padding: 6px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .doc-subtab:hover { border-color: var(--border2); color: var(--text); }
+  .doc-subtab.active { background: var(--purple); color: #fff; border-color: var(--purple); }
+  .doc-panel { display: none; }
+  .doc-panel.active { display: block; }
+
+  .upload-zone {
+    border: 2px dashed var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 32px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface2);
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--purple);
+    background: rgba(139,92,246,0.07);
+  }
+  .upload-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-icon { font-size: 32px; margin-bottom: 8px; }
+  .upload-label { font-size: 13px; color: var(--text2); }
+  .upload-label span { color: var(--purple); font-weight: 600; }
+  .upload-hint { font-size: 11px; color: var(--text3); margin-top: 4px; font-family: var(--mono); }
+
+  .doc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .doc-thumb {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    position: relative;
+    transition: border-color 0.15s;
+  }
+  .doc-thumb:hover { border-color: var(--border2); }
+  .doc-thumb img {
+    width: 100%; height: 110px; object-fit: cover; display: block;
+  }
+  .doc-thumb-file {
+    width: 100%; height: 110px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; background: var(--surface3);
+  }
+  .doc-thumb-file .doc-ext {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    background: var(--purple); color: #fff;
+    padding: 2px 8px; border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .doc-thumb-name {
+    padding: 6px 8px;
+    font-size: 10px; color: var(--text2);
+    font-family: var(--mono);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .doc-thumb-del {
+    position: absolute; top: 4px; right: 4px;
+    background: rgba(255,77,106,0.85); color: #fff;
+    border: none; border-radius: 50%; width: 20px; height: 20px;
+    font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .doc-thumb:hover .doc-thumb-del { opacity: 1; }
+  .doc-empty {
+    text-align: center; color: var(--text3); font-size: 12px;
+    padding: 16px; font-family: var(--mono);
+  }
+  .doc-count-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--purple); color: #fff;
+    font-size: 10px; font-weight: 700; font-family: var(--mono);
+    border-radius: 10px; padding: 1px 7px; margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* ════════════════════════════════════════
+     BOTÃO ANALISAR
+  ════════════════════════════════════════ */
+  .btn-analyze {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    letter-spacing: 0.2px;
+    transition: all 0.15s;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 16px rgba(59,126,255,0.3);
+  }
+  .btn-analyze:hover {
+    background: var(--accent-h);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(59,126,255,0.45);
+  }
+  .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ════════════════════════════════════════
+     RESULTADO
+  ════════════════════════════════════════ */
+  #result-section { display: none; margin-top: 28px; animation: fadeUp 0.4s ease; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .risk-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .risk-low    { background: rgba(0,196,140,0.1);  color: #00c48c; border: 1px solid rgba(0,196,140,0.25); }
+  .risk-medium { background: rgba(245,166,35,0.1); color: #f5a623; border: 1px solid rgba(245,166,35,0.25); }
+  .risk-high   { background: rgba(255,128,64,0.1); color: #ff8040; border: 1px solid rgba(255,128,64,0.25); }
+  .risk-critical{background: rgba(255,77,106,0.1); color: #ff4d6a; border: 1px solid rgba(255,77,106,0.25); }
+
+  .decision-banner {
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    border-left: 3px solid;
+    background: var(--surface2);
+  }
+  .decision-banner.liberado  { border-color: var(--green);  background: rgba(0,196,140,0.06); }
+  .decision-banner.parcial   { border-color: var(--yellow); background: rgba(245,166,35,0.06); }
+  .decision-banner.recusado  { border-color: var(--red);    background: rgba(255,77,106,0.06); }
+  .decision-banner.superior  { border-color: var(--accent); background: rgba(59,126,255,0.06); }
+  .decision-banner .d-label  {
+    font-size: 9px;
+    font-family: var(--mono);
+    color: var(--text3);
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    font-weight: 600;
+  }
+  .decision-banner .d-value  {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .result-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .result-item .ri-label {
+    font-size: 9px;
+    font-family: var(--mono);
+    color: var(--text3);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .result-item .ri-value {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--accent);
+  }
+
+  .msg-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--text2);
+    white-space: pre-wrap;
+    margin-bottom: 10px;
+  }
+
+  .btn-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 11px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .btn-copy:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-salvar-planilha {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 18px;
+    background: rgba(59,126,255,0.08);
+    border: 1px solid rgba(59,126,255,0.3);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-salvar-planilha:hover { background: rgba(59,126,255,0.15); border-color: var(--accent); }
+  .btn-salvar-planilha:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-xlsx {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 18px;
+    background: rgba(0,196,140,0.08);
+    border: 1px solid rgba(0,196,140,0.25);
+    color: var(--green);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-xlsx:hover { background: rgba(0,196,140,0.15); }
+
+  .full-analysis {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    font-size: 12px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    color: var(--text2);
+    font-family: var(--mono);
+  }
+
+  .risk-bar-wrap { background: var(--surface2); border-radius: 100px; height: 6px; width: 100%; margin-top: 8px; overflow: hidden; }
+  .risk-bar { height: 100%; border-radius: 100px; transition: width 0.6s ease; }
+
+  .score-display { display: flex; align-items: baseline; gap: 4px; }
+  .score-num { font-size: 28px; font-weight: 700; font-family: var(--mono); color: var(--accent); }
+  .score-max { font-size: 13px; color: var(--text3); font-family: var(--mono); }
+
+  hr.sep { border: none; border-top: 1px solid var(--border); margin: 22px 0; }
+
+  .error-msg {
+    background: rgba(255,77,106,0.08);
+    border: 1px solid rgba(255,77,106,0.25);
+    color: #ff6b82;
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    display: none;
+    margin-top: 14px;
+  }
+
+  .analyst-banner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text3);
+    margin-bottom: 20px;
+  }
+  .analyst-banner strong { color: var(--text); }
+
+  .gs-status { font-size: 11px; font-family: var(--mono); padding: 6px 12px; border-radius: 6px; margin-top: 10px; display: none; }
+  .gs-saving { background: rgba(59,126,255,0.08); border: 1px solid rgba(59,126,255,0.2); color: var(--accent); }
+  .gs-saved  { background: rgba(0,196,140,0.08);  border: 1px solid rgba(0,196,140,0.2);  color: var(--green); }
+  .gs-error  { background: rgba(255,77,106,0.08); border: 1px solid rgba(255,77,106,0.2); color: var(--red); }
+
+  .page-header { margin-bottom: 22px; }
+  .page-header h2 { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.4px; margin-bottom: 3px; }
+  .page-header p  { font-size: 12px; color: var(--text3); font-family: var(--mono); }
+
+  /* ════════════════════════════════════════
+     DASHBOARD
+  ════════════════════════════════════════ */
+  .dash-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .dash-kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .dash-kpi-card::after {
+    content: '';
+    position: absolute;
+    right: -12px; top: -12px;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: rgba(59,126,255,0.05);
+  }
+  .dash-kpi-label { font-size: 10px; font-family: var(--mono); color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .dash-kpi-val   { font-size: 28px; font-weight: 700; font-family: var(--mono); }
+
+  /* ════════════════════════════════════════
+     BARRA DE PROGRESSO
+  ════════════════════════════════════════ */
+  #progresso-wrap {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 28px;
+    position: sticky;
+    top: 56px;
+    z-index: 99;
+    display: none;
+  }
+  #progresso-inner { display: flex; align-items: center; gap: 10px; }
+  #progresso-bar-track { flex: 1; background: var(--surface2); border-radius: 100px; height: 4px; overflow: hidden; }
+  #progresso-bar-fill  { height: 100%; border-radius: 100px; background: var(--accent); transition: width 0.3s ease, background 0.3s ease; }
+  #progresso-label { font-family: var(--mono); font-size: 11px; color: var(--text3); white-space: nowrap; min-width: 70px; text-align: right; }
+  #progresso-hint  { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+  /* ════════════════════════════════════════
+     VALIDAÇÃO CNPJ/CPF
+  ════════════════════════════════════════ */
+  input.campo-valido   { border-color: var(--green) !important; box-shadow: 0 0 0 2px rgba(0,196,140,0.12) !important; }
+  input.campo-invalido { border-color: var(--red)   !important; box-shadow: 0 0 0 2px rgba(255,77,106,0.12) !important; }
+  .validacao-hint       { font-family: var(--mono); font-size: 10px; margin-top: 3px; display: none; }
+  .validacao-hint.ok    { color: var(--green); display: block; }
+  .validacao-hint.erro  { color: var(--red);   display: block; }
+
+  /* ════════════════════════════════════════
+     DESTAQUE DE CAMPOS DE RISCO
+  ════════════════════════════════════════ */
+  .campo-risco-alto    { border-color: var(--orange) !important; box-shadow: 0 0 0 2px rgba(255,128,64,0.12) !important; }
+  .campo-risco-critico { border-color: var(--red)    !important; box-shadow: 0 0 0 2px rgba(255,77,106,0.15) !important; }
+  .campo-risco-label   { font-family: var(--mono); font-size: 10px; margin-top: 3px; color: var(--orange); display: none; }
+  .campo-risco-label.visivel { display: block; }
+
+  /* ════════════════════════════════════════
+     GAUGE SEMICIRCULAR
+  ════════════════════════════════════════ */
+  .gauge-wrap  { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 0 0; }
+  .gauge-svg   { overflow: visible; }
+  .gauge-num   { font-size: 26px; font-weight: 700; font-family: var(--mono); fill: var(--accent); }
+  .gauge-max   { font-size: 11px; font-family: var(--mono); fill: var(--text3); }
+  .gauge-label { font-size: 10px; font-family: var(--mono); fill: var(--text3); }
+
+  /* ════════════════════════════════════════
+     ATALHO HINT
+  ════════════════════════════════════════ */
+  .atalho-hint {
+    position: fixed;
+    bottom: 18px; right: 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    line-height: 1.8;
+  }
+  .atalho-hint.visivel { opacity: 1; }
+  .atalho-hint kbd {
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 10px;
+    color: var(--text);
+  }
+
+  /* ════════════════════════════════════════
+     FILTROS E CONSULTA
+  ════════════════════════════════════════ */
+  .filtro-btn {
+    padding: 5px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filtro-btn:hover { border-color: var(--border2); color: var(--text); }
+  .filtro-ativo { background: rgba(59,126,255,0.1) !important; border-color: rgba(59,126,255,0.4) !important; color: var(--accent) !important; }
+
+  .consulta-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-bottom: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.15s;
+  }
+  .consulta-card:hover { border-color: var(--border2); }
+  .consulta-card-header {
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+  }
+  .consulta-card-header:hover { background: var(--surface2); }
+  .consulta-card-body { display: none; padding: 0 18px 18px; border-top: 1px solid var(--border); }
+  .consulta-card-body.open { display: block; }
+  .consulta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .consulta-item { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+  .consulta-item .ci-label { font-size: 9px; font-family: var(--mono); color: var(--text3); letter-spacing: 0.8px; text-transform: uppercase; font-weight: 500; margin-bottom: 3px; }
+  .consulta-item .ci-value { font-size: 13px; font-weight: 600; font-family: var(--mono); color: var(--text); }
+  .consulta-msg { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; font-family: var(--mono); font-size: 12px; line-height: 1.7; color: var(--text3); white-space: pre-wrap; margin-top: 10px; }
+
+  /* ════════════════════════════════════════
+     RESPONSIVE
+  ════════════════════════════════════════ */
+  @media (max-width: 900px) { .auth-left { display: none; } .auth-right { width: 100%; } }
+  @media (max-width: 640px) {
+    .grid2, .grid3, .result-grid, .dash-kpi-grid { grid-template-columns: 1fr; }
+    .header { padding: 0 16px; flex-wrap: wrap; gap: 8px; height: auto; padding-top: 10px; padding-bottom: 10px; }
+    .main { padding: 18px 14px 60px; }
+    .auth-right { padding: 28px 20px; }
+    #progresso-wrap { padding: 8px 16px; }
+  }
+</style>
+
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-left">
+    <div class="auth-left-brand">
+      <div class="auth-left-logo">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="12" cy="36" r="7" stroke="white" stroke-width="2.5"/>
+  <circle cx="12" cy="36" r="2.5" fill="white"/>
+  <circle cx="36" cy="36" r="7" stroke="white" stroke-width="2.5"/>
+  <circle cx="36" cy="36" r="2.5" fill="white"/>
+  <path d="M19 36h10M26 20l4 16M22 20h8l2-6h-6l-2 3h-4l-2-3h-3l3 6z" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M10 28l4-8h6" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
+      </div>
+      <h1>Análise de Crédito DP</h1>
+      <p>Sistema de Crédito B2B — Peças de Moto</p>
+    </div>
+    <div class="auth-left-tagline">
+      <div class="auth-kpi-row">
+        <div class="auth-kpi"><span class="auth-kpi-val">100%</span><span class="auth-kpi-lbl">Offline</span></div>
+        <div class="auth-kpi"><span class="auth-kpi-val">B2B</span><span class="auth-kpi-lbl">Segmento</span></div>
+        <div class="auth-kpi"><span class="auth-kpi-val">v2</span><span class="auth-kpi-lbl">Versão</span></div>
+      </div>
+      <div class="auth-feature-list">
+        <ul style="list-style:none">
+          <li><span class="dot"></span>Motor de score de risco local</li>
+          <li><span class="dot"></span>Clientes novos e antigos</li>
+          <li><span class="dot"></span>Sincronização com Google Sheets</li>
+          <li><span class="dot"></span>Dashboard e histórico de análises</li>
+          <li><span class="dot"></span>Exportação XLSX</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="auth-right">
+  <div class="auth-box">
+    <div class="auth-heading">
+      <h2>Bem-vindo</h2>
+      <p>Faça login para acessar o sistema</p>
+    </div>
+
+    <div class="auth-tabs" id="auth-tabs-bar">
+      <button class="auth-tab active" id="tab-login-btn" onclick="switchAuthTab('login')">Entrar</button>
+      <button class="auth-tab" id="tab-recover-btn" onclick="switchAuthTab('recover')">Esqueci a senha</button>
+      <button class="auth-tab" id="tab-admin-btn" onclick="switchAuthTab('admin')" style="color:#e8a020;">Admin</button>
+
+    </div>
+
+    <!-- LOGIN -->
+    <div id="auth-login">
+
+      <!-- STEP 1: credenciais -->
+      <div id="login-step1">
+        <div class="auth-field"><label>Usuário</label><input type="text" id="login-user" placeholder="Seu nome de usuário" autocomplete="username"></div>
+        <div class="auth-field">
+          <label>Senha</label>
+          <div style="position:relative;display:flex;align-items:center">
+            <input type="password" id="login-pass" placeholder="Sua senha" autocomplete="current-password"
+              onkeydown="if(event.key==='Enter') doLogin()"
+              style="width:100%;padding-right:44px;box-sizing:border-box">
+            <span id="olho-login"
+              onclick="event.stopPropagation();toggleSenhaVisivel('login-pass','olho-login')"
+              style="position:absolute;right:12px;cursor:pointer;font-size:18px;user-select:none;line-height:1;opacity:0.6"
+              title="Mostrar/ocultar senha">👁</span>
+          </div>
+        </div>
+        <button class="btn-auth" id="login-btn-el" onclick="doLogin()">Entrar →</button>
+        <div style="text-align:center;margin-top:12px"><span style="font-family:var(--mono);font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline" onclick="switchAuthTab('recover')">Esqueceu a senha? Clique aqui</span></div>
+        <div class="auth-error" id="login-error"></div>
+      </div>
+
+      <!-- STEP 2: redefinição de senha — primeiro acesso (aparece na mesma aba "Entrar") -->
+      <div id="login-step2" style="display:none;animation:fadeIn 0.3s ease;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+          <button onclick="voltarLoginStep1()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:0;transition:color 0.15s;" title="Voltar">←</button>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--accent2);line-height:1.6;background:#1a1508;border:1px solid #4d3a10;border-radius:8px;padding:10px 14px;flex:1;">
+            🔑 <strong style="color:var(--accent2)">Primeiro acesso.</strong> Crie uma senha pessoal para continuar.
+          </div>
+        </div>
+        <div class="auth-field"><label>Nova senha</label><input type="password" id="fa-newpass" placeholder="Mínimo 4 caracteres" autocomplete="new-password" onkeydown="if(event.key==='Enter') doFirstAccessReset()"></div>
+        <div class="auth-field"><label>Confirmar nova senha</label><input type="password" id="fa-newpass2" placeholder="Repita a nova senha" autocomplete="new-password" onkeydown="if(event.key==='Enter') doFirstAccessReset()"></div>
+        <button class="btn-auth" id="fa-btn" onclick="doFirstAccessReset()" style="background:#16a34a;">Definir senha e entrar →</button>
+        <div class="auth-error" id="fa-error" style="margin-top:10px;"></div>
+      </div>
+
+    </div>
+
+    <!-- REGISTER - oculto, criação apenas pelo ADM -->
+    <div id="auth-register" style="display:none"></div>
+
+    <!-- Mantido por compatibilidade (não é mais usado) -->
+    <div id="auth-firstaccess" style="display:none"></div>
+
+    <!-- RECOVER -->
+    <div id="auth-recover" style="display:none">
+      <div style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+        🔐 Informe seu <strong style="color:var(--text)">usuário</strong> e o <strong style="color:var(--text)">CPF</strong> cadastrado para redefinir a senha.
+      </div>
+      <div id="recover-step1">
+        <div class="auth-field"><label>Usuário</label><input type="text" id="rec-user" placeholder="Seu nome de usuário"></div>
+        <div class="auth-field"><label>CPF cadastrado</label><input type="text" id="rec-cpf" placeholder="000.000.000-00" maxlength="14" oninput="formatCPF(this)" onkeydown="if(event.key==='Enter') verifyIdentity()"></div>
+        <button class="btn-auth" id="rec-btn-el" onclick="verifyIdentity()">Verificar identidade →</button>
+      </div>
+      <div id="recover-step2" style="display:none">
+        <div style="font-family:var(--mono);font-size:12px;color:var(--green);margin-bottom:14px;padding:10px 14px;background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.2);border-radius:8px;">✅ Identidade confirmada! Defina a nova senha.</div>
+        <div class="auth-field"><label>Nova senha</label><input type="password" id="rec-newpass" placeholder="Mínimo 4 caracteres"></div>
+        <div class="auth-field"><label>Confirmar nova senha</label><input type="password" id="rec-newpass2" placeholder="Repita a nova senha" onkeydown="if(event.key==='Enter') doResetPassword()"></div>
+        <button class="btn-auth" id="rec-save-btn-el" onclick="doResetPassword()">Salvar nova senha →</button>
+      </div>
+      <div class="auth-error" id="rec-error"></div>
+      <div class="auth-success" id="rec-success"></div>
+      <div style="text-align:center;margin-top:14px"><span style="font-family:var(--mono);font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline" onclick="switchAuthTab('login')">← Voltar para o login</span></div>
+    </div>
+    <!-- ADMIN -->
+    <div id="auth-admin" style="display:none">
+      <div id="admin-lock">
+        <div style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6;background:#1a1508;border:1px solid #3d2e10;border-radius:8px;padding:12px 14px;">
+          🔐 Área restrita. Informe a <strong style="color:var(--accent2)">senha de administrador</strong> para continuar.
+        </div>
+        <div class="auth-field"><label>Senha ADM</label><input type="password" id="adm-pass" placeholder="Senha de administrador" onkeydown="if(event.key==='Enter') doAdminLogin()"></div>
+        <button class="btn-auth" id="adm-login-btn" onclick="doAdminLogin()" style="background:var(--accent2);color:#111;">Acessar área do administrador →</button>
+        <div class="auth-error" id="adm-error"></div>
+      </div>
+
+      <div id="admin-panel" style="display:none">
+        <!-- Header do painel -->
+        <div style="background:linear-gradient(135deg,#1a1508,#2a1e08);border:1px solid #4d3a10;border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="width:32px;height:32px;background:var(--accent2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">⚙</div>
+            <div>
+              <div style="font-family:var(--mono);font-size:13px;color:var(--accent2);font-weight:800;letter-spacing:-0.3px;">Área do Administrador</div>
+              <div id="adm-status" style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:1px;"></div>
+            </div>
+          </div>
+          <!-- Botões de ação -->
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button onclick="renderAdminUsers()" style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:#1e2023;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='#e8a020';this.style.color='#e8a020'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↺ Atualizar</button>
+            <button onclick="exportUsersXLSX()" style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:#0e2a18;border:1px solid #1e5c32;color:#4ade80;font-family:var(--mono);font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;">⬇ Usuários XLSX</button>
+            <button onclick="exportAnalisesXLSX()" style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:#0e1a2a;border:1px solid #1e3a5c;color:#60a5fa;font-family:var(--mono);font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;">⬇ Análises XLSX</button>
+            <button onclick="gravarCabecalho()" id="btn-gravar-cab" style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:#1a0e2a;border:1px solid #3a1e5c;color:#c084fc;font-family:var(--mono);font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;">📋 Gravar Cabeçalho</button>
+          </div>
+          <div id="cab-status" style="display:none;margin-top:8px;font-family:var(--mono);font-size:11px;border-radius:6px;padding:8px 12px;border:1px solid var(--border);"></div>
+        </div>
+
+        <!-- Criar novo usuário -->
+        <div style="background:#0e1a0e;border:1px solid #1e3a1e;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+          <div style="font-family:var(--mono);font-size:10px;color:#4ade80;letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px;">➕ Criar novo usuário</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div class="auth-field" style="margin:0"><label>Nome completo</label><input type="text" id="adm-reg-name" placeholder="Ex: João Silva"></div>
+            <div class="auth-field" style="margin:0"><label>CPF</label><input type="text" id="adm-reg-cpf" placeholder="000.000.000-00" maxlength="14" oninput="formatCPF(this)"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div class="auth-field" style="margin:0"><label>Usuário</label><input type="text" id="adm-reg-user" placeholder="Ex: joao (sem espaços)"></div>
+            <div class="auth-field" style="margin:0"><label>Senha inicial</label><input type="password" id="adm-reg-pass" placeholder="Mínimo 4 caracteres"></div>
+          </div>
+          <button onclick="admCreateUser()" id="adm-create-btn" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#0e2a18;border:1px solid #1e5c32;color:#4ade80;font-family:var(--mono);font-size:12px;font-weight:700;border-radius:6px;cursor:pointer;">➕ Criar usuário</button>
+          <div id="adm-create-error" style="display:none;margin-top:8px;font-family:var(--mono);font-size:11px;color:#f87171;background:#2a0e0e;border:1px solid #5a1a1a;border-radius:6px;padding:8px 12px;"></div>
+          <div id="adm-create-success" style="display:none;margin-top:8px;font-family:var(--mono);font-size:11px;color:#4ade80;background:#0e2a18;border:1px solid #1e5c32;border-radius:6px;padding:8px 12px;"></div>
+        </div>
+
+        <!-- Lista de usuários -->
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;font-weight:700;display:flex;align-items:center;gap:6px;">
+          <span>👥</span> Usuários cadastrados
+        </div>
+        <div id="admin-users-body" style="max-height:260px;overflow-y:auto;margin-bottom:4px;"></div>
+        <div id="adm-analises-status" style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-top:6px;display:none;padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);"></div>
+
+        <div style="text-align:center;margin-top:14px">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline" onclick="lockAdmin()">🔒 Sair da área do administrador</span>
+        </div>
+      </div>
+    </div>
+  </div><!-- end auth-box -->
+  </div><!-- end auth-right -->
+</div><!-- end auth-screen -->
+
+<!-- APP SCREEN -->
+<div id="app-screen">
+<div class="header">
+  <div class="logo-icon">
+    <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="6" cy="19" r="3.5" stroke="white" stroke-width="1.5"/>
+  <circle cx="20" cy="19" r="3.5" stroke="white" stroke-width="1.5"/>
+  <path d="M9.5 19h7M15 11l2 8M12 11h5l1-3h-3.5l-1 1.5H11l-1-1.5H8.5l1.5 3z" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M5.5 15.5l2-4h3" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+</svg>
+  </div>
+  <div class="header-divider"></div>
+  <h1>Análise de Crédito DP</h1>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span class="date-badge" id="header-date"></span>
+    <span class="header-tag">CRÉDITO B2B</span>
+    <div class="user-badge"><div class="u-avatar" id="user-avatar">?</div><span class="u-name" id="user-display">—</span></div>
+    <button class="btn-logout" onclick="doLogout()">Sair</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- NAVEGAÇÃO PRINCIPAL -->
+  <div class="nav-bar">
+    <button id="nav-dashboard" onclick="switchNav('dashboard')" class="nav-btn">📊 Dashboard</button>
+    <button id="nav-analise" onclick="switchNav('analise')" class="nav-btn active">⚡ Nova Análise</button>
+    <button id="nav-consulta" onclick="switchNav('consulta')" class="nav-btn">🔍 Consultar</button>
+  </div>
+
+  <!-- PAINEL: DASHBOARD -->
+  <div id="painel-dashboard" style="display:none;">
+    <div class="page-header">
+      <h2>Dashboard</h2>
+      <p>Resumo e estatísticas das análises de crédito</p>
+    </div>
+
+    <!-- Cards de totais -->
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;" id="dash-cards">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center;">
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Total de Análises</div>
+        <div id="dash-total" style="font-size:32px;font-weight:800;font-family:var(--mono);color:var(--accent2);">—</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center;">
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Liberados</div>
+        <div id="dash-liberados" style="font-size:32px;font-weight:800;font-family:var(--mono);color:#4ade80;">—</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center;">
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Recusados</div>
+        <div id="dash-recusados" style="font-size:32px;font-weight:800;font-family:var(--mono);color:#f87171;">—</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center;">
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Em Análise Superior</div>
+        <div id="dash-superior" style="font-size:32px;font-weight:800;font-family:var(--mono);color:#60a5fa;">—</div>
+      </div>
+    </div>
+
+    <!-- Valor total recomendado -->
+    <div style="background:linear-gradient(135deg,#1a1008,#2a1a08);border:1px solid #4d3a10;border-radius:12px;padding:20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-size:10px;font-family:var(--mono);color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">💰 Volume Total Recomendado</div>
+        <div id="dash-volume" style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--accent2);">—</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Ticket Médio</div>
+        <div id="dash-ticket" style="font-size:18px;font-weight:800;font-family:var(--mono);color:var(--text);">—</div>
+      </div>
+    </div>
+
+    <!-- Risco e tipos -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+      <!-- Distribuição de risco -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;">
+        <div style="font-size:10px;font-family:var(--mono);color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;font-weight:700;">⚠️ Risco</div>
+        <div id="dash-risco-bars"></div>
+      </div>
+      <!-- Novo vs Antigo -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;">
+        <div style="font-size:10px;font-family:var(--mono);color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;font-weight:700;">👥 Tipo de Cliente</div>
+        <div id="dash-tipo-bars"></div>
+      </div>
+    </div>
+
+    <!-- Por analista -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:20px;">
+      <div style="font-size:10px;font-family:var(--mono);color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;font-weight:700;">🧑‍💼 Análises por Analista</div>
+      <div id="dash-analistas"></div>
+    </div>
+
+    <!-- Últimas análises -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:20px;">
+      <div style="font-size:10px;font-family:var(--mono);color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;font-weight:700;">🕐 Últimas 5 Análises</div>
+      <div id="dash-ultimas"></div>
+    </div>
+
+    <div style="text-align:center;">
+      <button onclick="carregarDashboard()" style="padding:10px 24px;background:#1a1c1f;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:12px;font-weight:700;border-radius:8px;cursor:pointer;">↺ Atualizar dados</button>
+      <div id="dash-status" style="margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--muted);"></div>
+    </div>
+  </div>
+
+  <!-- BARRA DE PROGRESSO -->
+  <div id="progresso-wrap">
+    <div id="progresso-inner">
+      <span style="font-family:var(--mono);font-size:11px;color:var(--accent2);font-weight:700;white-space:nowrap;">Preenchimento</span>
+      <div id="progresso-bar-track"><div id="progresso-bar-fill" style="width:0%"></div></div>
+      <span id="progresso-label">0 / 0</span>
+    </div>
+    <div id="progresso-hint"></div>
+  </div>
+
+  <div id="painel-analise">
+  <div class="page-header">
+    <h2>Nova Análise de Crédito</h2>
+    <p>Preencha os campos abaixo e clique em Analisar para obter o parecer de crédito</p>
+  </div>
+  <div class="analyst-banner">
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,0.7)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke-linecap="round"/></svg>
+    <span>Analista responsável:</span>
+    <strong id="analyst-name-display">—</strong>
+    <span style="margin-left:auto;font-size:10px;opacity:0.6">Salve a análise na planilha após cada operação</span>
+  </div>
+
+  <div class="card">
+    <div class="section-title">01 — Dados Gerais</div>
+    <div class="grid2" style="margin-bottom:16px">
+      <div class="field"><label>Tipo de Cliente</label>
+        <select id="tipo_cliente" onchange="switchTipo()">
+          <option value="">Selecione...</option><option value="novo">Novo</option><option value="antigo">Antigo</option>
+        </select>
+      </div>
+      <div class="field"><label>Tipo de Análise</label>
+        <select id="tipo_analise">
+          <option value="">Selecione...</option><option value="Primeira análise">Primeira análise</option>
+          <option value="Segunda compra">Segunda compra</option><option value="Aumento de limite">Aumento de limite</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:16px">
+      <div class="field"><label>Cliente (Razão Social)</label><input type="text" id="cliente" placeholder="Nome da empresa"></div>
+      <div class="field"><label>CNPJ ou CPF</label><input type="text" id="cnpj" placeholder="CNPJ ou CPF do cliente" oninput="formatCNPJouCPF(this)" maxlength="18"><div class="validacao-hint" id="cnpj-hint"></div></div>
+    </div>
+    <div class="grid2" style="margin-bottom:16px">
+      <div class="field"><label>Nome do Cliente (Responsável)</label><input type="text" id="nome_cliente" placeholder="Nome completo do responsável"></div>
+      <div class="field"><label>CPF do Cliente</label><input type="text" id="cpf_cliente" placeholder="000.000.000-00" maxlength="14" oninput="formatCPF(this);validarCPFInput(this)"><div class="validacao-hint" id="cpf-hint"></div></div>
+    </div>
+    <div class="grid3">
+      <div class="field"><label>Valor Solicitado (R$)</label><input type="number" id="valor_solicitado" placeholder="0,00"></div>
+      <div class="field"><label>Situação SPC/Serasa</label>
+        <select id="spc_serasa">
+          <option value="">Selecione...</option><option value="Sem restrição">Sem restrição</option>
+          <option value="Pendência abaixo de R$ 1.000">Pendência abaixo de R$ 1.000</option>
+          <option value="Pendência acima de R$ 1.000">Pendência acima de R$ 1.000</option>
+          <option value="Protesto/restrição grave">Protesto/restrição grave</option>
+        </select>
+        <div class="campo-risco-label" id="spc-risco-label"></div>
+      </div>
+      <div class="field"><label>Valor da Pendência (R$)</label><input type="number" id="valor_pendencia" placeholder="0,00"></div>
+    </div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="field"><label>Possui protesto ou restrição grave?</label>
+        <select id="protesto"><option value="Não">Não</option><option value="Sim">Sim</option></select>
+        <div class="campo-risco-label" id="protesto-risco-label"></div>
+      </div>
+      <div class="field"><label>Nome do Representante</label><input type="text" id="representante" placeholder="Nome do representante comercial"></div>
+    </div>
+    <div class="field" style="margin-top:16px"><label>Observações Comerciais</label><textarea id="obs" rows="2" placeholder="Informações adicionais relevantes..."></textarea></div>
+  </div>
+
+  <div class="tab-row">
+    <button class="tab" id="tab-novo" onclick="showPanel('novo')">Cliente Novo</button>
+    <button class="tab" id="tab-antigo" onclick="showPanel('antigo')">Cliente Antigo</button>
+  </div>
+
+  <div class="panel" id="panel-novo">
+    <div class="card">
+      <div class="section-title">02 — Dados do Cliente Novo</div>
+      <div class="grid3" style="margin-bottom:16px">
+        <div class="field"><label>Tempo de abertura da empresa</label>
+          <select id="tempo_abertura">
+            <option value="">Selecione...</option><option value="acima_12">Acima de 12 meses</option>
+            <option value="6_a_12">6 a 12 meses</option><option value="ate_5">Até 5 meses</option>
+          </select>
+        </div>
+        <div class="field"><label>Valor Nota Fiscal 1 (R$)</label><input type="number" id="nf1" placeholder="0,00"></div>
+        <div class="field"><label>Valor Nota Fiscal 2 (R$)</label><input type="number" id="nf2" placeholder="0,00"></div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label>Valor Nota Fiscal 3 (R$)</label><input type="number" id="nf3" placeholder="0,00"></div>
+        <div class="field"><label>Situação da loja</label>
+          <select id="situacao_loja">
+            <option value="">Selecione...</option><option value="Bem estruturada">Bem estruturada</option>
+            <option value="Média">Média</option><option value="Fraca">Fraca</option><option value="Duvidosa">Duvidosa</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SEÇÃO DOCUMENTOS ===== -->
+    <div class="card" style="margin-top:16px">
+      <div class="section-title" style="margin-bottom:14px">
+        📎 Documentos do Cliente
+        <span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:8px;font-family:var(--mono)">Opcional — para registro da análise</span>
+      </div>
+
+      <!-- Sub-abas de documentos -->
+      <div class="doc-subtabs">
+        <button class="doc-subtab active" onclick="switchDocTab('nf')" id="doctab-nf">
+          🧾 Notas Fiscais <span class="doc-count-badge" id="badge-nf" style="display:none">0</span>
+        </button>
+        <button class="doc-subtab" onclick="switchDocTab('fachada')" id="doctab-fachada">
+          🏪 Foto da Fachada <span class="doc-count-badge" id="badge-fachada" style="display:none">0</span>
+        </button>
+        <button class="doc-subtab" onclick="switchDocTab('outros')" id="doctab-outros">
+          📁 Outros Documentos <span class="doc-count-badge" id="badge-outros" style="display:none">0</span>
+        </button>
+      </div>
+
+      <!-- Painel: Notas Fiscais -->
+      <div class="doc-panel active" id="docpanel-nf">
+        <div class="upload-zone" id="zone-nf"
+          ondragover="docDragOver(event,'nf')" ondragleave="docDragLeave('nf')" ondrop="docDrop(event,'nf')">
+          <input type="file" id="input-nf" multiple accept="image/*,.pdf,.xml,.txt"
+            onchange="docFilesSelected(event,'nf')">
+          <div class="upload-icon">🧾</div>
+          <div class="upload-label">Arraste ou <span>clique para selecionar</span></div>
+          <div class="upload-hint">Imagens, PDF, XML — qualquer formato de NF</div>
+        </div>
+        <div class="doc-grid" id="grid-nf"></div>
+        <div class="doc-empty" id="empty-nf">Nenhuma nota fiscal anexada ainda.</div>
+      </div>
+
+      <!-- Painel: Foto da Fachada -->
+      <div class="doc-panel" id="docpanel-fachada">
+        <div class="upload-zone" id="zone-fachada"
+          ondragover="docDragOver(event,'fachada')" ondragleave="docDragLeave('fachada')" ondrop="docDrop(event,'fachada')">
+          <input type="file" id="input-fachada" multiple accept="image/*"
+            onchange="docFilesSelected(event,'fachada')">
+          <div class="upload-icon">🏪</div>
+          <div class="upload-label">Arraste ou <span>clique para selecionar</span></div>
+          <div class="upload-hint">Fotos da fachada da loja — JPG, PNG, WEBP</div>
+        </div>
+        <div class="doc-grid" id="grid-fachada"></div>
+        <div class="doc-empty" id="empty-fachada">Nenhuma foto de fachada anexada ainda.</div>
+      </div>
+
+      <!-- Painel: Outros Documentos -->
+      <div class="doc-panel" id="docpanel-outros">
+        <div class="upload-zone" id="zone-outros"
+          ondragover="docDragOver(event,'outros')" ondragleave="docDragLeave('outros')" ondrop="docDrop(event,'outros')">
+          <input type="file" id="input-outros" multiple
+            onchange="docFilesSelected(event,'outros')">
+          <div class="upload-icon">📁</div>
+          <div class="upload-label">Arraste ou <span>clique para selecionar</span></div>
+          <div class="upload-hint">Qualquer tipo de documento</div>
+        </div>
+        <div class="doc-grid" id="grid-outros"></div>
+        <div class="doc-empty" id="empty-outros">Nenhum outro documento anexado ainda.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-antigo">
+    <div class="card">
+      <div class="section-title">02 — Dados do Cliente Antigo</div>
+      <div class="grid3" style="margin-bottom:16px">
+        <div class="field"><label>Limite aprovado anteriormente (R$)</label><input type="number" id="limite_aprovado" placeholder="0,00"></div>
+        <div class="field"><label>Saldo em aberto atual (R$)</label><input type="number" id="saldo_aberto" placeholder="0,00"></div>
+        <div class="field"><label>Qtd parcelas da nova compra</label><input type="number" id="qtd_parcelas" placeholder="Ex: 6"></div>
+      </div>
+      <div class="grid3" style="margin-bottom:16px">
+        <div class="field"><label>Parcelas pagas em dia</label><input type="number" id="pagas_dia" placeholder="Ex: 4"></div>
+        <div class="field"><label>Parcelas pagas em atraso</label><input type="number" id="pagas_atraso" placeholder="Ex: 2"></div>
+        <div class="field"><label>Houve atraso atual?</label>
+          <select id="atraso_atual"><option value="Não">Não</option><option value="Sim">Sim</option></select>
+          <div class="campo-risco-label" id="atraso-risco-label"></div>
+        </div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label>Valor médio parcelas em dia (R$)</label><input type="number" id="media_dia" placeholder="0,00"></div>
+        <div class="field"><label>Maior parcela paga em dia (R$)</label><input type="number" id="maior_dia" placeholder="0,00"></div>
+        <div class="field"><label>Valor médio parcelas atrasadas (R$)</label><input type="number" id="media_atraso_val" placeholder="0,00"></div>
+      </div>
+      <div class="grid2" style="margin-top:16px">
+        <div class="field"><label>Menor parcela que costuma atrasar (R$)</label><input type="number" id="menor_atraso" placeholder="0,00"></div>
+        <div class="field"><label>Histórico geral de pagamento</label>
+          <select id="historico_geral">
+            <option value="">Selecione...</option><option value="Bom">Bom</option>
+            <option value="Médio">Médio</option><option value="Ruim">Ruim</option>
+          </select>
+          <div class="campo-risco-label" id="historico-risco-label"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-analyze" id="btn-analyze" onclick="analisar()">
+    <div class="spinner" id="spinner"></div>
+    <span id="btn-text">⚡ Analisar Crédito</span>
+  </button>
+  <button onclick="limparFormulario()" style="width:100%;padding:12px;background:var(--surface);color:var(--text3);font-family:var(--sans);font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-top:8px;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">Limpar e Nova Análise</button>
+  <div class="error-msg" id="error-msg"></div>
+
+  <div id="result-section">
+    <hr class="sep">
+    <div class="section-title">Resultado da Análise</div>
+    <div class="result-grid">
+      <div class="result-item">
+        <div class="ri-label">Pontuação de Risco</div>
+        <div class="gauge-wrap">
+          <svg class="gauge-svg" width="140" height="80" viewBox="0 0 140 80">
+            <path d="M15,75 A55,55 0 0,1 125,75" fill="none" stroke="#2a2d31" stroke-width="10" stroke-linecap="round"/>
+            <path id="gauge-arc" d="M15,75 A55,55 0 0,1 125,75" fill="none" stroke="#22c55e" stroke-width="10" stroke-linecap="round"
+              stroke-dasharray="0 173" style="transition:stroke-dasharray 0.7s ease,stroke 0.5s ease"/>
+            <text id="res-score" x="70" y="68" text-anchor="middle" class="gauge-num">—</text>
+            <text x="70" y="78" text-anchor="middle" class="gauge-max">/ 100</text>
+          </svg>
+        </div>
+      </div>
+      <div class="result-item"><div class="ri-label">Classificação</div><div style="margin-top:4px" id="res-class">—</div></div>
+      <div class="result-item"><div class="ri-label">Valor Recomendado</div><div class="ri-value" id="res-valor" style="color:var(--green)">—</div></div>
+      <div class="result-item"><div class="ri-label">Pode aumentar limite?</div><div class="ri-value" id="res-aumento">—</div></div>
+    </div>
+
+    <div id="decision-banner" class="decision-banner" style="display:none">
+      <div class="d-label">Decisão Recomendada</div>
+      <div class="d-value" id="res-decisao">—</div>
+      <div style="margin-top:8px;font-size:13px;color:var(--muted);font-family:var(--mono)" id="res-condicao"></div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      <div class="section-title" style="margin-bottom:12px">📋 Análise Completa</div>
+      <div class="full-analysis" id="res-full"></div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      <div class="section-title" style="margin-bottom:12px">💬 Mensagem para o Vendedor</div>
+      <div class="msg-box" id="res-msg"></div>
+      <button class="btn-copy" onclick="copiar('res-msg')">📋 Copiar mensagem</button>
+    </div>
+
+    <div style="margin-bottom:12px" id="bloco-confirmacao-compra">
+      <div class="section-title" style="margin-bottom:12px">📲 Confirmação de Compra</div>
+      <div class="msg-box" id="res-confirmacao"></div>
+      <button class="btn-copy" onclick="copiar('res-confirmacao')">📋 Copiar mensagem</button>
+    </div>
+
+    <div>
+      <div class="section-title" style="margin-bottom:12px">📊 Exportar / Salvar</div>
+      <div style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:12px">
+        Salve a análise direto na aba <strong style="color:var(--text)">analises</strong> da planilha ou exporte em Excel.
+      </div>
+      <div class="gs-status" id="gs-status"></div>
+
+      <!-- Barra de progresso do salvamento -->
+      <div id="save-progress-wrap" style="display:none;margin:12px 0 4px">
+        <div style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:6px" id="save-progress-label">Salvando...</div>
+        <div style="background:var(--surface2);border-radius:4px;height:6px;overflow:hidden">
+          <div id="save-progress-bar" style="height:100%;width:0%;border-radius:4px;transition:width 0.4s ease;background:var(--accent)"></div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn-salvar-planilha" id="btn-salvar-planilha" onclick="salvarTudo()">💾 Salvar Planilha + Arquivos</button>
+        <button class="btn-xlsx" onclick="baixarXLSX()">⬇️ Baixar Excel (.xlsx)</button>
+        <button class="btn-copy" onclick="limparRegistros()">🗑️ Limpar registros locais</button>
+      </div>
+
+      <div style="margin-top:8px;font-size:11px;color:var(--muted);font-family:var(--mono)" id="count-label"></div>
+    </div>
+  </div>
+  </div><!-- end painel-analise -->
+
+  <!-- PAINEL: CONSULTAR ANÁLISES -->
+  <div id="painel-consulta" style="display:none;">
+    <div class="page-header">
+      <h2>Consultar Análises</h2>
+      <p>Pesquise análises salvas na planilha por nome do cliente, CNPJ ou analista</p>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🔍 Pesquisa</div>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+        <!-- Campo de texto (cliente / cnpj / todos) -->
+        <div id="consulta-input-wrap" style="flex:1;min-width:200px;">
+          <label id="consulta-label">Buscar por nome do cliente</label>
+          <input type="text" id="consulta-input" placeholder="Ex: Gabriel Motos" onkeydown="if(event.key==='Enter')buscarAnalises()" style="width:100%">
+        </div>
+        <!-- Select de analista (só aparece no modo analista) -->
+        <div id="consulta-analista-wrap" style="flex:1;min-width:200px;display:none;">
+          <label>Selecionar analista</label>
+          <select id="consulta-analista-select" style="width:100%">
+            <option value="">⏳ Carregando analistas...</option>
+          </select>
+        </div>
+        <button onclick="buscarAnalises()" id="btn-buscar" style="padding:10px 22px;background:var(--accent);color:#fff;font-family:var(--mono);font-size:13px;font-weight:700;border:none;border-radius:8px;cursor:pointer;white-space:nowrap;height:42px;transition:all 0.15s;">🔍 Buscar</button>
+        <button onclick="limparConsulta()" style="padding:10px 16px;background:#1a1c1f;color:var(--muted);font-family:var(--mono);font-size:12px;font-weight:700;border:1px solid var(--border);border-radius:8px;cursor:pointer;height:42px;">✕ Limpar</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+        <button onclick="filtrarPor('cliente')" id="filtro-cliente" class="filtro-btn filtro-ativo">👤 Cliente</button>
+        <button onclick="filtrarPor('cnpj')" id="filtro-cnpj" class="filtro-btn">🏢 CNPJ</button>
+        <button onclick="filtrarPor('analista')" id="filtro-analista" class="filtro-btn">🧑‍💼 Analista</button>
+        <button onclick="filtrarPor('todos')" id="filtro-todos" class="filtro-btn">📋 Todos os campos</button>
+      </div>
+
+      <!-- Filtro por período -->
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:8px;">📅 Filtrar por período</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button onclick="setPeriodo('hoje')" id="periodo-hoje" class="filtro-btn">Hoje</button>
+          <button onclick="setPeriodo('semana')" id="periodo-semana" class="filtro-btn">Esta semana</button>
+          <button onclick="setPeriodo('mes')" id="periodo-mes" class="filtro-btn">Este mês</button>
+          <button onclick="setPeriodo('personalizado')" id="periodo-personalizado" class="filtro-btn">Personalizado</button>
+          <button onclick="setPeriodo('')" id="periodo-todos" class="filtro-btn filtro-ativo">Todos</button>
+        </div>
+        <div id="periodo-custom-wrap" style="display:none;margin-top:10px;display:none;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div>
+            <label style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:4px;display:block;">De</label>
+            <input type="date" id="periodo-de" style="width:160px;padding:8px 10px;font-size:12px;">
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:4px;display:block;">Até</label>
+            <input type="date" id="periodo-ate" style="width:160px;padding:8px 10px;font-size:12px;">
+          </div>
+        </div>
+      </div>
+
+      <div id="consulta-status" style="margin-top:10px;font-family:var(--mono);font-size:12px;color:var(--muted);display:none;"></div>
+    </div>
+
+    <div id="consulta-resultados" style="margin-top:16px;"></div>
+  </div>
+
+</div>
+</div><!-- end app-screen -->
+
+<script>
+// ══════════════════════════════════════════════════════════
+// GOOGLE SHEETS CONFIG
+// ══════════════════════════════════════════════════════════
+const GS_URL = 'https://script.google.com/macros/s/AKfycbyLNv81RhhkI8I9HYiTOC9TkBhFs7yrBna44zKpRRjTpTUziLENf4CtgWvqUMxm_7uK/exec';
+
+// Variáveis globais declaradas no topo para evitar erros de referência
+let registros = [];
+let _firstAccessUsername = null;
+let ultimoRegistro = null;
+let _filtroAtivo = 'cliente';
+let _paginaAtual = 1;
+let _resultadosAtuais = [];
+const _POR_PAGINA = 10;
+
+function gsPost(payload) {
+  return new Promise((resolve) => {
+    const cbName = 'gs_cb_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+    const timer = setTimeout(() => {
+      delete window[cbName];
+      const s = document.getElementById(cbName);
+      if (s) s.remove();
+      resolve({ ok: false, erro: 'Timeout — verifique a URL do Apps Script.' });
+    }, 40000);
+    window[cbName] = function(data) {
+      clearTimeout(timer);
+      delete window[cbName];
+      const s = document.getElementById(cbName);
+      if (s) s.remove();
+      resolve(data);
+    };
+    const params = encodeURIComponent(JSON.stringify(payload));
+    const script = document.createElement('script');
+    script.id = cbName;
+    script.src = GS_URL + '?callback=' + cbName + '&payload=' + params;
+    script.onerror = function() {
+      clearTimeout(timer);
+      delete window[cbName];
+      script.remove();
+      resolve({ ok: false, erro: 'Erro ao conectar com o Apps Script.' });
+    };
+    document.body.appendChild(script);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// SESSION (localStorage)
+// ══════════════════════════════════════════════════════════
+const SESSION_KEY = 'credito_b2b_session';
+function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; } }
+function saveSession(u) { localStorage.setItem(SESSION_KEY, JSON.stringify(u)); }
+function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+function hashPass(pass) {
+  let h = 0;
+  for (let i = 0; i < pass.length; i++) h = Math.imul(31, h) + pass.charCodeAt(i) | 0;
+  return h.toString(36);
+}
+function formatCPF(input) {
+  let v = input.value.replace(/\D/g,'').substring(0,11);
+  v = v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+  input.value = v;
+}
+function cleanCPF(cpf) { return (cpf||'').replace(/\D/g,''); }
+
+// ══════════════════════════════════════════════════════════
+// AUTH HELPERS
+// ══════════════════════════════════════════════════════════
+function switchAuthTab(tab) {
+  ['login','recover','admin'].forEach(t => {
+    const panel = document.getElementById('auth-'+t);
+    const btn = document.getElementById('tab-'+t+'-btn');
+    if(panel) panel.style.display = t===tab ? 'block' : 'none';
+    if(btn) btn.classList.toggle('active', t===tab);
+  });
+  // Ao trocar de aba, garantir que login volte ao step 1
+  if (tab === 'login') {
+    document.getElementById('login-step1').style.display = 'block';
+    document.getElementById('login-step2').style.display = 'none';
+    _firstAccessUsername = null;
+  }
+  const regPanel = document.getElementById('auth-register');
+  if(regPanel) regPanel.style.display = 'none';
+  if (tab==='recover') {
+    document.getElementById('recover-step1').style.display='block';
+    document.getElementById('recover-step2').style.display='none';
+    document.getElementById('rec-user').value='';
+    document.getElementById('rec-cpf').value='';
+  }
+}
+function showAuthError(id,msg){ const e=document.getElementById(id);e.textContent=msg;e.style.display='block';setTimeout(()=>e.style.display='none',5000); }
+function showAuthSuccess(id,msg){ const e=document.getElementById(id);e.textContent=msg;e.style.display='block';setTimeout(()=>e.style.display='none',5000); }
+function setBtnLoading(id,loading,txt){ const b=document.getElementById(id);if(!b)return;b.disabled=loading;b.textContent=txt; }
+
+// ══════════════════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════════════════
+function toggleSenhaVisivel(inputId, olhoId) {
+  const input = document.getElementById(inputId);
+  const olho  = document.getElementById(olhoId);
+  if (!input) return;
+  const visivel = input.type === 'text';
+  input.type = visivel ? 'password' : 'text';
+  if (olho) olho.textContent = visivel ? '👁' : '🙈';
+}
+
+async function doLogin() {
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  if (!username||!password) { showAuthError('login-error','Preencha usuário e senha.'); return; }
+  setBtnLoading('login-btn-el',true,'Verificando...');
+  try {
+    const r = await gsPost({ action:'buscar_usuarios' });
+    if (!r.ok) { showAuthError('login-error','Erro ao conectar com o banco de dados.'); return; }
+    const user = (r.users||[]).find(u => u.username.toLowerCase()===username.toLowerCase());
+    if (!user) { showAuthError('login-error','Usuário não encontrado.'); return; }
+    if (user.passHash !== hashPass(password)) { showAuthError('login-error','Senha incorreta.'); return; }
+    const sessao = { name:user.name, cpf:user.cpf, username:user.username };
+    saveSession(sessao);
+    if (user.primeiro_acesso === 'sim') {
+      // Mostrar step 2 de redefinição dentro da aba "Entrar"
+      _firstAccessUsername = user.username;
+      document.getElementById('login-step1').style.display = 'none';
+      document.getElementById('login-step2').style.display = 'block';
+      document.getElementById('fa-newpass').value = '';
+      document.getElementById('fa-newpass2').value = '';
+      document.getElementById('fa-error').style.display = 'none';
+      setTimeout(() => { const f=document.getElementById('fa-newpass'); if(f) f.focus(); }, 100);
+    } else {
+      enterApp(sessao);
+    }
+  } catch(e) {
+    showAuthError('login-error','Erro de conexão. Verifique sua internet.');
+  } finally {
+    setBtnLoading('login-btn-el',false,'Entrar →');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// CADASTRO
+// ══════════════════════════════════════════════════════════
+async function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const cpfRaw = document.getElementById('reg-cpf').value.trim();
+  const cpf = cleanCPF(cpfRaw);
+  const username = document.getElementById('reg-user').value.trim().replace(/\s+/g,'');
+  const pass = document.getElementById('reg-pass').value;
+  const pass2 = document.getElementById('reg-pass2').value;
+  if (!name) { showAuthError('reg-error','Informe o nome completo.'); return; }
+  if (cpf.length!==11) { showAuthError('reg-error','Informe um CPF válido com 11 dígitos.'); return; }
+  if (!username) { showAuthError('reg-error','Informe um nome de usuário.'); return; }
+  if (pass.length<4) { showAuthError('reg-error','Senha deve ter pelo menos 4 caracteres.'); return; }
+  if (pass!==pass2) { showAuthError('reg-error','As senhas não coincidem.'); return; }
+  setBtnLoading('reg-btn-el',true,'Cadastrando...');
+  try {
+    const r = await gsPost({ action:'cadastrar_usuario', name, cpf:cpfRaw, username, passHash:hashPass(pass) });
+    if (!r.ok) { showAuthError('reg-error', r.erro||'Erro ao cadastrar.'); return; }
+    ['reg-name','reg-cpf','reg-user','reg-pass','reg-pass2'].forEach(id => document.getElementById(id).value='');
+    showAuthSuccess('reg-success',`✅ Conta criada para ${name}! Vá para "Entrar".`);
+  } catch(e) {
+    showAuthError('reg-error','Erro de conexão. Verifique sua internet.');
+  } finally {
+    setBtnLoading('reg-btn-el',false,'Criar conta →');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// CRIAÇÃO DE USUÁRIO PELO ADM
+// ══════════════════════════════════════════════════════════
+async function admCreateUser() {
+  const name     = document.getElementById('adm-reg-name').value.trim();
+  const cpfRaw   = document.getElementById('adm-reg-cpf').value.trim();
+  const cpf      = cleanCPF(cpfRaw);
+  const username = document.getElementById('adm-reg-user').value.trim().replace(/\s+/g,'');
+  const pass     = document.getElementById('adm-reg-pass').value;
+  const errEl    = document.getElementById('adm-create-error');
+  const okEl     = document.getElementById('adm-create-success');
+  errEl.style.display = 'none';
+  okEl.style.display  = 'none';
+  const showErr = msg => { errEl.textContent = msg; errEl.style.display = 'block'; };
+  if (!name)           return showErr('Informe o nome completo.');
+  if (cpf.length !== 11) return showErr('Informe um CPF válido com 11 dígitos.');
+  if (!username)       return showErr('Informe um nome de usuário.');
+  if (pass.length < 4) return showErr('Senha deve ter pelo menos 4 caracteres.');
+  const btn = document.getElementById('adm-create-btn');
+  btn.textContent = '⏳ Criando...'; btn.disabled = true;
+  try {
+    const r = await gsPost({ action:'cadastrar_usuario', name, cpf:cpfRaw, username, passHash:hashPass(pass), primeiro_acesso:'sim' });
+    if (!r.ok) return showErr(r.erro || 'Erro ao cadastrar.');
+    ['adm-reg-name','adm-reg-cpf','adm-reg-user','adm-reg-pass'].forEach(id => document.getElementById(id).value = '');
+    okEl.textContent = `✅ Usuário "${username}" criado com sucesso! Senha inicial definida.`;
+    okEl.style.display = 'block';
+    setTimeout(() => { okEl.style.display = 'none'; }, 4000);
+    renderAdminUsers();
+  } catch(e) {
+    showErr('Erro de conexão. Verifique sua internet.');
+  } finally {
+    btn.textContent = '➕ Criar usuário'; btn.disabled = false;
+  }
+}
+
+async function renderUsersList() {
+  const body = document.getElementById('users-list-body');
+  if (!body) return;
+  body.innerHTML='<div style="font-size:12px;color:var(--muted);font-family:var(--mono);padding:8px 0">⏳ Carregando...</div>';
+  try {
+    const r = await gsPost({ action:'buscar_usuarios' });
+    if (!r.ok||!r.users||r.users.length===0) {
+      body.innerHTML='<div style="font-size:12px;color:var(--muted);font-family:var(--mono);padding:8px 0">Nenhum usuário cadastrado ainda.</div>'; return;
+    }
+    body.innerHTML = r.users.map(u=>`
+      <div class="user-item">
+        <span class="u-name">👤 ${u.name} <span style="color:var(--muted);font-weight:400">(@${u.username}) — CPF: ${u.cpf}</span></span>
+        <button class="u-del" onclick="deleteUser('${u.username}','${u.name}')" title="Remover">✕</button>
+      </div>`).join('');
+  } catch(e) {
+    body.innerHTML='<div style="font-size:12px;color:var(--red);font-family:var(--mono);padding:8px 0">Erro ao carregar usuários.</div>';
+  }
+}
+
+async function deleteUser(username, nome) {
+  if (!confirm(`Remover o usuário "${nome}"?`)) return;
+  try {
+    const r = await gsPost({ action:'deletar_usuario', username });
+    if (!r.ok) { alert('Erro ao remover: '+(r.erro||'')); return; }
+    renderAdminUsers();
+  } catch(e) { alert('Erro de conexão.'); }
+}
+
+// ══════════════════════════════════════════════════════════
+// RECUPERAÇÃO DE SENHA
+// ══════════════════════════════════════════════════════════
+let _recoverUsername = null;
+
+async function verifyIdentity() {
+  const username = document.getElementById('rec-user').value.trim();
+  const cpfClean = cleanCPF(document.getElementById('rec-cpf').value);
+  if (!username||cpfClean.length!==11) { showAuthError('rec-error','Preencha o usuário e o CPF completo.'); return; }
+  setBtnLoading('rec-btn-el',true,'Verificando...');
+  try {
+    const r = await gsPost({ action:'buscar_usuarios' });
+    if (!r.ok) { showAuthError('rec-error','Erro de conexão.'); return; }
+    const user = (r.users||[]).find(u => u.username.toLowerCase()===username.toLowerCase());
+    if (!user) { showAuthError('rec-error','Usuário não encontrado.'); return; }
+    if (cleanCPF(user.cpf)!==cpfClean) { showAuthError('rec-error','CPF não confere com o cadastro.'); return; }
+    _recoverUsername = username;
+    document.getElementById('recover-step1').style.display='none';
+    document.getElementById('recover-step2').style.display='block';
+  } catch(e) {
+    showAuthError('rec-error','Erro de conexão.');
+  } finally {
+    setBtnLoading('rec-btn-el',false,'Verificar identidade →');
+  }
+}
+
+async function doResetPassword() {
+  if (!_recoverUsername) return;
+  const newpass = document.getElementById('rec-newpass').value;
+  const newpass2 = document.getElementById('rec-newpass2').value;
+  if (newpass.length<4) { showAuthError('rec-error','Senha deve ter pelo menos 4 caracteres.'); return; }
+  if (newpass!==newpass2) { showAuthError('rec-error','As senhas não coincidem.'); return; }
+  setBtnLoading('rec-save-btn-el',true,'Salvando...');
+  try {
+    const r = await gsPost({ action:'atualizar_senha', username:_recoverUsername, passHash:hashPass(newpass) });
+    if (!r.ok) { showAuthError('rec-error','Erro ao atualizar senha.'); return; }
+    _recoverUsername = null;
+    showAuthSuccess('rec-success','✅ Senha redefinida! Redirecionando...');
+    setTimeout(()=>switchAuthTab('login'),2500);
+  } catch(e) {
+    showAuthError('rec-error','Erro de conexão.');
+  } finally {
+    setBtnLoading('rec-save-btn-el',false,'Salvar nova senha →');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// APP ENTRY / LOGOUT
+// ══════════════════════════════════════════════════════════
+function enterApp(user) {
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app-screen').style.display='block';
+  const initials = user.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  document.getElementById('user-avatar').textContent=initials;
+  document.getElementById('user-display').textContent=user.name;
+  document.getElementById('analyst-name-display').textContent=user.name;
+  document.getElementById('header-date').textContent=todayStr();
+  atualizarContador();
+}
+function doLogout() {
+  if (!confirm('Deseja sair do sistema?')) return;
+  clearSession(); registros=[]; ultimoRegistro=null;
+  _firstAccessUsername = null;
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('result-section').style.display='none';
+  document.getElementById('login-user').value='';
+  document.getElementById('login-pass').value='';
+  document.getElementById('login-step1').style.display='block';
+  document.getElementById('login-step2').style.display='none';
+  switchAuthTab('login');
+}
+function voltarLoginStep1() {
+  _firstAccessUsername = null;
+  document.getElementById('login-step2').style.display = 'none';
+  document.getElementById('login-step1').style.display = 'block';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').style.display = 'none';
+}
+
+async function doFirstAccessReset() {
+  const newpass  = document.getElementById('fa-newpass').value;
+  const newpass2 = document.getElementById('fa-newpass2').value;
+  const showErr  = msg => { const e=document.getElementById('fa-error'); e.textContent=msg; e.style.display='block'; };
+  document.getElementById('fa-error').style.display = 'none';
+  if (newpass.length < 4) { showErr('A senha deve ter pelo menos 4 caracteres.'); return; }
+  if (newpass !== newpass2) { showErr('As senhas não coincidem.'); return; }
+  const btn = document.getElementById('fa-btn');
+  btn.disabled = true; btn.textContent = '⏳ Salvando...';
+  try {
+    const r = await gsPost({ action:'atualizar_senha', username:_firstAccessUsername, passHash:hashPass(newpass), primeiro_acesso:'nao' });
+    if (!r.ok) { showErr('Erro ao salvar senha. Tente novamente.'); return; }
+    const sessao = getSession();
+    _firstAccessUsername = null;
+    // Resetar step para próxima vez que chegar na tela de login
+    document.getElementById('login-step2').style.display = 'none';
+    document.getElementById('login-step1').style.display = 'block';
+    enterApp(sessao);
+  } catch(e) {
+    showErr('Erro de conexão. Verifique sua internet.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Definir senha e entrar →';
+  }
+}
+
+
+
+// Auto-login removido: sempre exibe a tela de login ao abrir o arquivo
+// ══════════════════════════════════════════════════════════
+function todayStr(){ return new Date().toLocaleDateString('pt-BR'); }
+function switchTipo(){ const t=document.getElementById('tipo_cliente').value; if(t==='novo') showPanel('novo'); else if(t==='antigo') showPanel('antigo'); }
+function showPanel(w){
+  ['novo','antigo'].forEach(p=>{
+    document.getElementById('panel-'+p).classList.toggle('active',p===w);
+    document.getElementById('tab-'+p).classList.toggle('active',p===w);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// GERENCIAMENTO DE DOCUMENTOS (cliente novo)
+// ══════════════════════════════════════════════════════════
+const docStore = { nf: [], fachada: [], outros: [] };
+
+function switchDocTab(tab) {
+  ['nf','fachada','outros'].forEach(t => {
+    document.getElementById('doctab-'+t).classList.toggle('active', t===tab);
+    document.getElementById('docpanel-'+t).classList.toggle('active', t===tab);
+  });
+}
+
+function docDragOver(e, tab) {
+  e.preventDefault();
+  document.getElementById('zone-'+tab).classList.add('drag-over');
+}
+function docDragLeave(tab) {
+  document.getElementById('zone-'+tab).classList.remove('drag-over');
+}
+function docDrop(e, tab) {
+  e.preventDefault();
+  docDragLeave(tab);
+  const files = Array.from(e.dataTransfer.files);
+  if (files.length) processDocFiles(files, tab);
+}
+function docFilesSelected(e, tab) {
+  const files = Array.from(e.target.files);
+  if (files.length) processDocFiles(files, tab);
+  e.target.value = '';
+}
+
+function processDocFiles(files, tab) {
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const doc = { name: file.name, type: file.type, size: file.size, data: ev.target.result, id: Date.now()+Math.random() };
+      docStore[tab].push(doc);
+      renderDocGrid(tab);
+      updateDocBadge(tab);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderDocGrid(tab) {
+  const grid = document.getElementById('grid-'+tab);
+  const empty = document.getElementById('empty-'+tab);
+  const docs = docStore[tab];
+  empty.style.display = docs.length ? 'none' : 'block';
+  grid.innerHTML = docs.map(doc => {
+    const isImage = doc.type.startsWith('image/');
+    const ext = doc.name.split('.').pop().toUpperCase();
+    return `<div class="doc-thumb" id="doc-${doc.id}">
+      ${isImage
+        ? `<img src="${doc.data}" alt="${doc.name}" onclick="docPreview('${doc.id}','${tab}')" style="cursor:zoom-in">`
+        : `<div class="doc-thumb-file" onclick="docPreview('${doc.id}','${tab}')" style="cursor:pointer">
+            <span style="font-size:28px">${ext==='PDF'?'📄':ext==='XML'?'📋':'📎'}</span>
+            <span class="doc-ext">${ext}</span>
+           </div>`
+      }
+      <div class="doc-thumb-name" title="${doc.name}">${doc.name}</div>
+      <button class="doc-thumb-del" onclick="docRemover('${doc.id}','${tab}')" title="Remover">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function updateDocBadge(tab) {
+  const badge = document.getElementById('badge-'+tab);
+  const n = docStore[tab].length;
+  badge.textContent = n;
+  badge.style.display = n ? 'inline-flex' : 'none';
+}
+
+function docRemover(id, tab) {
+  docStore[tab] = docStore[tab].filter(d => String(d.id) !== String(id));
+  renderDocGrid(tab);
+  updateDocBadge(tab);
+}
+
+function docPreview(id, tab) {
+  const doc = docStore[tab].find(d => String(d.id) === String(id));
+  if (!doc) return;
+  const isImage = doc.type.startsWith('image/');
+  const win = window.open('', '_blank', 'width=900,height=700');
+  if (isImage) {
+    win.document.write(`<!DOCTYPE html><html><head><title>${doc.name}</title>
+      <style>body{margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}
+      img{max-width:100%;max-height:100vh;object-fit:contain}</style></head>
+      <body><img src="${doc.data}" alt="${doc.name}"></body></html>`);
+  } else {
+    win.document.write(`<!DOCTYPE html><html><head><title>${doc.name}</title>
+      <style>body{margin:0;font-family:sans-serif;background:#111;color:#eee;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px}
+      a{color:#7c6af5;font-size:15px}</style></head>
+      <body><div style="font-size:48px">${doc.type==='application/pdf'?'📄':'📎'}</div>
+      <div>${doc.name}</div>
+      <a href="${doc.data}" download="${doc.name}">⬇️ Baixar arquivo</a></body></html>`);
+  }
+}
+
+function limparDocsNovo() {
+  ['nf','fachada','outros'].forEach(tab => {
+    docStore[tab] = [];
+    renderDocGrid(tab);
+    updateDocBadge(tab);
+  });
+  switchDocTab('nf');
+  // Resetar barra de progresso
+  const wrap = document.getElementById('save-progress-wrap');
+  if (wrap) wrap.style.display = 'none';
+  const bar = document.getElementById('save-progress-bar');
+  if (bar) { bar.style.width = '0%'; }
+}
+
+function totalDocs() {
+  return docStore.nf.length + docStore.fachada.length + docStore.outros.length;
+}
+
+function g(id){ const el=document.getElementById(id); return el?el.value||'':''; }
+function gn(id){ return parseFloat(document.getElementById(id)?.value)||0; }
+function fmt(val){ return val?'R$ '+Number(val).toLocaleString('pt-BR',{minimumFractionDigits:2}):'Não informado'; }
+function showError(msg){ const el=document.getElementById('error-msg');el.textContent=msg;el.style.display='block';setTimeout(()=>el.style.display='none',5000); }
+function getAnalystName(){ const s=getSession(); return s?s.name:'Não identificado'; }
+
+function showGsStatus(type, msg) {
+  const el = document.getElementById('gs-status');
+  el.className = 'gs-status gs-'+type;
+  el.textContent = msg;
+  el.style.display = 'block';
+  if (type==='saved'||type==='error') setTimeout(()=>el.style.display='none', 4000);
+}
+
+// ══════════════════════════════════════════════════════════
+// MOTOR DE ANÁLISE LOCAL (sem API externa)
+// ══════════════════════════════════════════════════════════
+function calcularRisco(tipo) {
+  const spc = g('spc_serasa');
+  const protesto = g('protesto');
+  let pontos = 0;
+
+  // SPC/Serasa
+  if (spc === 'Protesto/restrição grave' || protesto === 'Sim') pontos += 60;
+  else if (spc === 'Pendência acima de R$ 1.000') pontos += 50;
+  else if (spc === 'Pendência abaixo de R$ 1.000') pontos += 25;
+
+  if (tipo === 'novo') {
+    // Tempo de abertura
+    const ta = g('tempo_abertura');
+    if (ta === 'ate_5') pontos += 20;
+    else if (ta === '6_a_12') pontos += 10;
+
+    // Notas fiscais
+    const soma = gn('nf1') + gn('nf2') + gn('nf3');
+    if (soma < 1000) pontos += 20;
+    else if (soma <= 2000) pontos += 10;
+
+    // Situação da loja
+    const loja = (g('situacao_loja') || '').toLowerCase();
+    if (loja === 'duvidosa') pontos += 30;
+    else if (loja === 'fraca') pontos += 20;
+    else if (loja === 'média' || loja === 'media') pontos += 10;
+
+  } else {
+    // Histórico geral
+    const hist = (g('historico_geral') || '').toLowerCase();
+    const atraso = g('atraso_atual');
+    if (atraso === 'Sim') pontos += 40;
+    else if (hist === 'ruim') pontos += 30;
+    else if (hist === 'médio' || hist === 'medio') pontos += 15;
+
+    // Capacidade (saldo aberto vs limite aprovado)
+    const limAprov = gn('limite_aprovado');
+    const saldo = gn('saldo_aberto');
+    const qtd = gn('qtd_parcelas') || 1;
+    const valorSol = gn('valor_solicitado');
+    if (limAprov > 0) {
+      const uso = (saldo + valorSol) / limAprov;
+      if (uso > 1.2) pontos += 30;
+      else if (uso > 0.9) pontos += 15;
+    }
+
+    // Saldo em aberto: faixas de risco
+    // R$10k–40k = bom (0 pontos) | R$40k–60k = médio (+15) | R$60k+ = risco alto (+35)
+    if (saldo >= 60000) pontos += 35;
+    else if (saldo >= 40000) pontos += 15;
+
+    // Parcelas pagas em atraso: 1–2 = boa (0) | 3–4 = médio (+15) | 5+ = risco (+30)
+    const pgAtraso = gn('pagas_atraso');
+    if (pgAtraso >= 5) pontos += 30;
+    else if (pgAtraso >= 3) pontos += 15;
+  }
+
+  return Math.min(pontos, 100);
+}
+
+function calcularResultado(tipo) {
+  const score = calcularRisco(tipo);
+  const classif = score <= 30 ? 'baixo' : score <= 60 ? 'medio' : score <= 80 ? 'alto' : 'critico';
+  const classLabel = { baixo: 'RISCO BAIXO', medio: 'RISCO MÉDIO', alto: 'RISCO ALTO', critico: 'RISCO CRÍTICO' };
+
+  const spc = g('spc_serasa');
+  const protesto = g('protesto');
+  const vistaCartao = spc === 'Pendência acima de R$ 1.000' || spc === 'Protesto/restrição grave' || protesto === 'Sim';
+  const valorSol = gn('valor_solicitado');
+
+  let valorRec = 0, decisao = '', condicao = '', entradaExigida = 'Não', valorEntrada = 0;
+  let podeAumentar = 'Não', motivoLim = '', parcelaSegura = 0, limiteSeguro = 0, limHistPos = 0;
+  let somaNfs = 0, mediaNfs = 0, limiteDisp = 0;
+
+  if (tipo === 'novo') {
+    const nf1 = gn('nf1'), nf2 = gn('nf2'), nf3 = gn('nf3');
+    somaNfs = nf1 + nf2 + nf3;
+    mediaNfs = somaNfs / 3;
+    const ta = g('tempo_abertura');
+
+    if (vistaCartao) {
+      decisao = 'À vista/cartão';
+      valorRec = 0;
+      condicao = 'Cliente possui restrição grave ou pendência acima de R$ 1.000. Somente à vista ou cartão.';
+      motivoLim = 'Restrição no SPC/Serasa ou protesto.';
+    } else if (ta === 'ate_5') {
+      valorRec = score <= 30 ? 4000 : 3500;
+      entradaExigida = score <= 30 ? 'Sim' : 'Não';
+      valorEntrada = score <= 30 ? 500 : 0;
+      decisao = score <= 30 ? 'Liberado com entrada' : 'Liberado parcial';
+      condicao = score <= 30
+        ? 'Empresa com até 5 meses. Liberar R$ 4.000 com entrada de R$ 500.'
+        : 'Empresa com até 5 meses. Limite máximo de R$ 3.500.';
+    } else {
+      let mult = classif === 'baixo' ? 2.5 : classif === 'medio' ? 2.0 : 1.5;
+      if (somaNfs < 1000) valorRec = score <= 30 ? 4000 : 3500;
+      else if (somaNfs <= 2000) valorRec = Math.min(Math.round(mediaNfs * mult / 100) * 100, 5000);
+      else valorRec = Math.round(mediaNfs * mult / 100) * 100;
+
+      if (classif === 'critico') {
+        decisao = 'Recusado';
+        condicao = 'Risco crítico. Análise não recomenda liberação.';
+        valorRec = 0;
+      } else if (classif === 'alto') {
+        decisao = 'Aprovação superior';
+        condicao = 'Risco alto. Encaminhar para aprovação do gestor.';
+      } else {
+        decisao = 'Liberado';
+        condicao = `Crédito liberado em boleto. Valor recomendado: ${fmt(valorRec)}.`;
+      }
+    }
+
+  } else {
+    // Cliente antigo
+    const limAprov = gn('limite_aprovado');
+    const saldo = gn('saldo_aberto');
+    limiteDisp = limAprov - saldo;
+    const qtd = gn('qtd_parcelas') || 1;
+    const menorAtraso = gn('menor_atraso');
+    const mediaDia = gn('media_dia');
+    const atraso = g('atraso_atual');
+    const hist = (g('historico_geral') || '').toLowerCase();
+
+    parcelaSegura = menorAtraso > 0 ? Math.round(menorAtraso * 0.7 * 100) / 100 : 0;
+    limiteSeguro = parcelaSegura * qtd;
+    limHistPos = mediaDia * qtd;
+
+    // Para cliente antigo: NUNCA sugerir "à vista/cartão"
+    // Capital alto = solicita mais de 70% do limite aprovado ou excede o limite disponível
+    // Parcelas altas = mais de 4 parcelas
+    const capitalAlto = valorSol > limAprov * 0.7 || valorSol > limiteDisp;
+    const parcelasAlta = qtd > 4;
+
+    if (atraso === 'Sim') {
+      // CALCULO REAL DE ANTECIPACAO
+      // Valor medio de cada parcela em aberto
+      const parcelaMediaAberto = qtd > 0 ? Math.round((saldo / qtd) * 100) / 100 : (mediaDia || 0);
+
+      // Deficit: quanto falta de limite disponivel para cobrir o valor solicitado
+      const deficitLimite = valorSol - limiteDisp;
+
+      // Quantas parcelas precisam ser antecipadas para cobrir o deficit
+      let qtdAntec;
+      if (saldo >= 60000) {
+        // Saldo muito alto (R$60k+): forçar 4 parcelas
+        qtdAntec = 4;
+      } else if (deficitLimite <= 0 || parcelaMediaAberto <= 0) {
+        qtdAntec = 1;
+      } else {
+        qtdAntec = Math.ceil(deficitLimite / parcelaMediaAberto);
+      }
+      qtdAntec = Math.min(4, Math.max(1, qtdAntec));
+
+      // Valor liberado proporcional à quantidade de parcelas antecipadas
+      // 1 parcela → R$4.000–R$5.000 | 2 → R$5.000–R$6.500 | 3 → R$6.500–R$8.000 | 4 → R$8.000–R$9.000
+      const faixasAntec = [
+        { min: 4000, max: 5000 },
+        { min: 5000, max: 6500 },
+        { min: 6500, max: 8000 },
+        { min: 8000, max: 9000 }
+      ];
+      const faixa = faixasAntec[qtdAntec - 1];
+      // Proporcional ao saldo: quanto maior o saldo, maior o valor dentro da faixa
+      const proporcao = limAprov > 0 ? Math.min(1, saldo / limAprov) : 0.5;
+      valorRec = Math.round((faixa.min + proporcao * (faixa.max - faixa.min)) / 100) * 100;
+      valorRec = Math.max(faixa.min, Math.min(faixa.max, valorRec));
+
+      const antecTxtAtraso = qtdAntec === 1 ? '1 parcela' : `${qtdAntec} parcelas`;
+
+      decisao = 'Liberado com antecipa\u00e7\u00e3o';
+      condicao = `Cliente antigo com atraso atual. Solicitar antecipa\u00e7\u00e3o de aproximadamente ${antecTxtAtraso} para redu\u00e7\u00e3o do saldo em aberto. Valor liberado ap\u00f3s antecipa\u00e7\u00e3o: ${fmt(valorRec)}.`;
+      motivoLim = `Atraso atual. Antecipa\u00e7\u00e3o de aproximadamente ${antecTxtAtraso} necess\u00e1ria.`;
+    } else if (vistaCartao) {
+      // Restrição grave no SPC/Serasa: sugerir antecipação (mín 1, máx 4 parcelas)
+      let qtdAntec = 1;
+      if (saldo >= 60000) qtdAntec = 4; // saldo muito alto → sempre 4
+      else if (capitalAlto && parcelasAlta) qtdAntec = 4;
+      else if (capitalAlto && valorSol > limAprov * 0.9) qtdAntec = 4;
+      else if (capitalAlto && qtd >= 6) qtdAntec = 3;
+      else if (capitalAlto) qtdAntec = 2;
+      else if (parcelasAlta && qtd >= 7) qtdAntec = 3;
+      else if (parcelasAlta) qtdAntec = 2;
+      qtdAntec = Math.min(4, Math.max(1, qtdAntec));
+      const antecTxtSpc = qtdAntec === 1 ? 'aproximadamente 1 parcela' : `aproximadamente ${qtdAntec} parcelas`;
+      // Valor liberado proporcional à quantidade de parcelas (mesma lógica do atraso)
+      const faixasSpc = [
+        { min: 4000, max: 5000 },
+        { min: 5000, max: 6500 },
+        { min: 6500, max: 8000 },
+        { min: 8000, max: 9000 }
+      ];
+      const faixaSpc = faixasSpc[qtdAntec - 1];
+      const propSpc = limAprov > 0 ? Math.min(1, (limAprov - limiteDisp) / limAprov) : 0.5;
+      valorRec = Math.round((faixaSpc.min + propSpc * (faixaSpc.max - faixaSpc.min)) / 100) * 100;
+      valorRec = Math.max(faixaSpc.min, Math.min(faixaSpc.max, valorRec));
+      decisao = 'Liberado com antecipação';
+      condicao = `Cliente antigo com restrição no SPC/Serasa. Solicitar antecipação de ${antecTxtSpc} para redução do saldo em aberto. Valor liberado após antecipação: ${fmt(valorRec)}.`;
+      motivoLim = `Restrição SPC/Serasa. Antecipação sugerida: ${antecTxtSpc}.`;
+    } else if (hist === 'ruim') {
+      decisao = 'Recusado';
+      valorRec = 0;
+      condicao = 'Histórico ruim de pagamento. Crédito não recomendado.';
+      motivoLim = 'Histórico geral ruim.';
+    } else if (hist === 'bom' || hist === 'médio' || hist === 'medio') {
+      const limBase = hist === 'bom' ? limHistPos : limiteSeguro;
+      valorRec = Math.min(limBase, limiteDisp + valorSol);
+      valorRec = Math.max(valorRec, 0);
+      podeAumentar = (valorSol > limiteDisp && hist === 'bom') ? 'Sim' : 'Não';
+      motivoLim = podeAumentar === 'Não' ? 'Valor solicitado dentro do limite disponível.' : '';
+
+      // ── FAIXA DE LIBERAÇÃO PARA CLIENTE ANTIGO ──
+      // Capital alto: mínimo R$4.000 (pode antecipar para liberar mais, até R$9.000)
+      // Capital normal: faixa de R$4.500 a R$9.000
+      if (capitalAlto) {
+        valorRec = Math.max(valorRec, 4000);
+      } else {
+        valorRec = Math.max(valorRec, 4500);
+      }
+      valorRec = Math.min(valorRec, 9000);
+
+      // ── ANTECIPAÇÃO: APENAS SE HOUVER ATRASO REAL ──
+      // Só exige antecipação se: atraso atual = Sim OU valores de atraso preenchidos.
+      // Capital alto, parcelas altas ou quantidade pagas em dia/atraso NÃO geram antecipação.
+      const comAtrasoReal = atraso === 'Sim'
+        || gn('media_atraso_val') > 0
+        || gn('menor_atraso') > 0;
+
+      if (comAtrasoReal) {
+        // Calcular quantas parcelas antecipar com base no déficit de limite
+        const parcelaMediaAberto = qtd > 0 ? Math.round((saldo / qtd) * 100) / 100 : (mediaDia || 0);
+        const deficitLimite = valorSol - limiteDisp;
+        let qtdAntec;
+        if (saldo >= 60000) qtdAntec = 4;
+        else if (deficitLimite <= 0 || parcelaMediaAberto <= 0) qtdAntec = 1;
+        else qtdAntec = Math.ceil(deficitLimite / parcelaMediaAberto);
+        qtdAntec = Math.min(4, Math.max(1, qtdAntec));
+        const antecTxt = qtdAntec === 1 ? '1 parcela' : `${qtdAntec} parcelas`;
+
+        const faixasAntec = [
+          { min: 4000, max: 5000 },
+          { min: 5000, max: 6500 },
+          { min: 6500, max: 8000 },
+          { min: 8000, max: 9000 }
+        ];
+        const faixa = faixasAntec[qtdAntec - 1];
+        const proporcao = limAprov > 0 ? Math.min(1, saldo / limAprov) : 0.5;
+        valorRec = Math.round((faixa.min + proporcao * (faixa.max - faixa.min)) / 100) * 100;
+        valorRec = Math.max(faixa.min, Math.min(faixa.max, valorRec));
+
+        decisao = 'Liberado com antecipação';
+        condicao = `Cliente com histórico de atraso. Solicitar antecipação de aproximadamente ${antecTxt} para redução do saldo em aberto. Valor liberado após antecipação: ${fmt(valorRec)}.`;
+        motivoLim = `Atraso identificado. Antecipação de aproximadamente ${antecTxt} necessária.`;
+      } else {
+        // Sem atraso real → liberar no boleto independente de capital alto ou qtd de parcelas
+        decisao = 'Liberado';
+        condicao = hist === 'bom'
+          ? `Cliente com bom histórico de pagamento. Crédito liberado no boleto. Valor recomendado: ${fmt(valorRec)}.`
+          : `Cliente com histórico médio de pagamento, sem atraso atual. Crédito liberado no boleto. Valor recomendado: ${fmt(valorRec)}.`;
+        motivoLim = '';
+      }
+    } else {
+      decisao = 'Análise incompleta';
+      condicao = 'Preencha o histórico geral de pagamento.';
+    }
+  }
+
+  // Textos de análise
+  const classTexto = classLabel[classif] || classif.toUpperCase();
+  const analise = [
+    `ANÁLISE DE CRÉDITO — ${tipo === 'novo' ? 'CLIENTE NOVO' : 'CLIENTE ANTIGO'}`,
+    `Cliente: ${g('cliente')} | CNPJ: ${g('cnpj') || 'Não informado'} | Responsável: ${g('nome_cliente') || 'Não informado'} | CPF: ${g('cpf_cliente') || 'Não informado'}`,
+    `Data: ${todayStr()} | Analista: ${getAnalystName()}${g('representante') ? ' | Representante: ' + g('representante') : ''}`,
+    ``,
+    `PONTUAÇÃO DE RISCO: ${score}/100 — ${classTexto}`,
+    `SPC/Serasa: ${spc || 'Não informado'} | Protesto: ${protesto}`,
+    tipo === 'novo'
+      ? `Soma NFs: ${fmt(somaNfs)} | Média NFs: ${fmt(mediaNfs)}`
+      : `Limite aprovado: ${fmt(gn('limite_aprovado'))} | Saldo em aberto: ${fmt(gn('saldo_aberto'))} | Limite disponível: ${fmt(limiteDisp)}`,
+    ``,
+    `DECISÃO: ${decisao}`,
+    `Condição: ${condicao}`,
+    `Valor recomendado: ${fmt(valorRec)}`,
+    entradaExigida === 'Sim' ? `Entrada exigida: ${fmt(valorEntrada)}` : '',
+  ].filter(Boolean).join('\n');
+
+  let msgVendedor;
+  if (tipo === 'antigo') {
+    if (decisao === 'Liberado') {
+      msgVendedor = `✅ Cliente apto para venda.\nDecisão: Liberado\nCondição: ${condicao}\nValor recomendado: ${fmt(valorRec)}`;
+    } else if (decisao === 'Liberado com antecipação') {
+      msgVendedor = `⚠️ Cliente apto, porém com condição.\nDecisão: Liberado com antecipação\nCondição: ${condicao}\nValor recomendado após antecipação: ${fmt(valorRec)}`;
+    } else if (decisao === 'À vista/cartão') {
+      msgVendedor = `⚠️ Cliente aprovado somente à vista ou cartão.\nDecisão: À vista/cartão\nMotivo: ${condicao}`;
+    } else if (decisao === 'Aprovação superior') {
+      msgVendedor = `🔄 Análise encaminhada para aprovação do gestor.\nDecisão: Aprovação superior\nMotivo: ${condicao}`;
+    } else {
+      msgVendedor = `❌ Cliente não apto para venda no momento.\nDecisão: ${decisao}\nMotivo: ${condicao}`;
+    }
+  } else {
+    msgVendedor = decisao === 'Liberado' || decisao === 'Liberado com entrada' || decisao === 'Liberado parcial'
+      ? `✅ Crédito aprovado para ${g('cliente')}.\nValor: ${fmt(valorRec)}${entradaExigida === 'Sim' ? ` (com entrada de ${fmt(valorEntrada)})` : ''}.\nCondição: ${condicao}`
+      : decisao === 'Liberado com antecipação'
+      ? `⚠️ Crédito de ${g('cliente')} liberado condicionalmente.\n${condicao}`
+      : decisao === 'À vista/cartão'
+      ? `⚠️ ${g('cliente')} aprovado somente à vista ou cartão.\nMotivo: ${condicao}`
+      : decisao === 'Aprovação superior'
+      ? `🔄 Análise de ${g('cliente')} encaminhada para aprovação do gestor.\n${condicao}`
+      : `❌ Crédito não aprovado para ${g('cliente')}.\nMotivo: ${condicao}`;
+  }
+
+  const justificativa = `${classTexto}. ${condicao}`;
+
+  return {
+    pontuacao_risco: score,
+    classificacao_risco: classif,
+    valor_recomendado: valorRec,
+    decisao,
+    condicao,
+    entrada_exigida: entradaExigida,
+    valor_entrada: valorEntrada,
+    pode_aumentar_limite: podeAumentar,
+    motivo_limitacao: motivoLim,
+    limite_disponivel: limiteDisp,
+    parcela_segura: parcelaSegura,
+    limite_seguro: limiteSeguro,
+    limite_historico_positivo: limHistPos,
+    soma_nfs: somaNfs,
+    media_nfs: mediaNfs,
+    analise_completa: analise,
+    mensagem_vendedor: msgVendedor,
+    justificativa_resumida: justificativa,
+  };
+}
+
+function limparFormulario() {
+  if (!confirm('Limpar todos os campos e iniciar nova análise?')) return;
+  ['tipo_cliente','tipo_analise','cliente','cnpj','nome_cliente','cpf_cliente','valor_solicitado','spc_serasa','valor_pendencia',
+   'protesto','representante','obs',
+   'tempo_abertura','nf1','nf2','nf3','situacao_loja',
+   'limite_aprovado','saldo_aberto','qtd_parcelas','pagas_dia','pagas_atraso','atraso_atual',
+   'media_dia','maior_dia','media_atraso_val','menor_atraso','historico_geral'
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.tagName === 'SELECT') el.selectedIndex = 0;
+    else el.value = '';
+  });
+  document.getElementById('result-section').style.display = 'none';
+  document.getElementById('error-msg').style.display = 'none';
+  document.getElementById('panel-novo').classList.remove('active');
+  document.getElementById('panel-antigo').classList.remove('active');
+  document.getElementById('tab-novo').classList.remove('active');
+  document.getElementById('tab-antigo').classList.remove('active');
+  // Limpar validações e destaques de risco
+  document.querySelectorAll('.campo-valido,.campo-invalido').forEach(el=>el.classList.remove('campo-valido','campo-invalido'));
+  document.querySelectorAll('.validacao-hint').forEach(el=>{el.className='validacao-hint';el.textContent='';});
+  limparDestaquesRisco();
+  limparDocsNovo();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function analisar() {
+  const tipo = g('tipo_cliente');
+  if (!tipo) { showError('Selecione o tipo de cliente.'); return; }
+  if (!g('cliente')) { showError('Informe o nome do cliente.'); return; }
+  if (!gn('valor_solicitado')) { showError('Informe o valor solicitado.'); return; }
+  const btn = document.getElementById('btn-analyze'), spinner = document.getElementById('spinner'), btnText = document.getElementById('btn-text');
+  btn.disabled = true; spinner.style.display = 'block'; btnText.textContent = 'Analisando...';
+  try {
+    const resultado = calcularResultado(tipo);
+    renderResult(resultado, tipo);
+  } catch(err) {
+    showError('Erro: ' + err.message);
+  } finally {
+    btn.disabled = false; spinner.style.display = 'none'; btnText.textContent = '⚡ Analisar Crédito';
+  }
+}
+
+function renderResult(raw,tipo) {
+  const p = (typeof raw === 'object' && raw !== null) ? raw : (() => {
+    try { return JSON.parse(raw.replace(/```json|```/g,'').trim()); }
+    catch(e) { document.getElementById('result-section').style.display='block';document.getElementById('res-full').textContent=raw;document.getElementById('res-msg').textContent='Ver análise acima.';return null; }
+  })();
+  if (!p) return;
+
+  const score=Math.min(p.pontuacao_risco||0,100);
+  const classif=(p.classificacao_risco||'baixo').toLowerCase();
+
+  // ── GAUGE SEMICIRCULAR ──
+  const arcLen = 173; // comprimento total do arco (π × r com r≈55)
+  const filled = Math.round((score / 100) * arcLen);
+  const gaugeColor = score<=30?'#22c55e':score<=60?'#f59e0b':score<=80?'#fb923c':'#d94f3d';
+  const arc = document.getElementById('gauge-arc');
+  if (arc) { arc.style.strokeDasharray=`${filled} ${arcLen-filled}`; arc.style.stroke=gaugeColor; }
+  document.getElementById('res-score').textContent=score;
+  const classMap={baixo:'risk-low',medio:'risk-medium',alto:'risk-high',critico:'risk-critical'};
+  const classLabel={baixo:'RISCO BAIXO',medio:'RISCO MÉDIO',alto:'RISCO ALTO',critico:'RISCO CRÍTICO'};
+  document.getElementById('res-class').innerHTML=`<span class="risk-badge ${classMap[classif]||'risk-low'}">● ${classLabel[classif]||classif.toUpperCase()}</span>`;
+  document.getElementById('res-valor').textContent=fmt(p.valor_recomendado);
+  document.getElementById('res-aumento').textContent=p.pode_aumentar_limite||'—';
+  document.getElementById('res-aumento').style.color=p.pode_aumentar_limite==='Sim'?'var(--green)':'var(--red)';
+  const banner=document.getElementById('decision-banner');
+  banner.style.display='block';
+  document.getElementById('res-decisao').textContent=p.decisao||'—';
+  document.getElementById('res-condicao').textContent=p.condicao||'';
+  banner.className='decision-banner';
+  const dec=(p.decisao||'').toLowerCase();
+  if(dec.includes('antecipação')||dec.includes('parcial')||dec.includes('entrada')) banner.classList.add('parcial');
+  else if(dec.includes('liberado')) banner.classList.add('liberado');
+  else if(dec.includes('recusado')||dec.includes('vista')) banner.classList.add('recusado');
+  else banner.classList.add('superior');
+  document.getElementById('res-full').textContent=p.analise_completa||raw;
+  document.getElementById('res-msg').textContent=p.mensagem_vendedor||'—';
+
+  // ── MENSAGEM DE CONFIRMAÇÃO DE COMPRA (cliente antigo) ──
+  const blocoConf = document.getElementById('bloco-confirmacao-compra');
+  const elConf = document.getElementById('res-confirmacao');
+  if (tipo === 'antigo') {
+    const analistaNome = getAnalystName();
+    const clienteNome  = g('cliente') || 'CLIENTE';
+    const representante = g('representante') || '';
+    const valorSolFmt  = fmt(gn('valor_solicitado'));
+    const repLinha = representante ? `com o representante *${representante}* ` : '';
+    const msgConf = `Olá, tudo bem?\nMe chamo ${analistaNome}, da Alvorada Motos, setor de peças.\nEstou entrando em contato para confirmar a compra realizada no nome de *${clienteNome}* ${repLinha}no valor de *${valorSolFmt}*.\nA compra está correta?`;
+    elConf.textContent = msgConf;
+    blocoConf.style.display = 'block';
+  } else {
+    blocoConf.style.display = 'none';
+    elConf.textContent = '';
+  }
+
+  // Montar registro
+  const analista=getAnalystName();
+  const ta=g('tempo_abertura');
+  const taLabel=ta==='ate_5'?'Até 5 meses':ta==='6_a_12'?'6 a 12 meses':ta==='acima_12'?'Acima de 12 meses':'N/A';
+  const limAprov=gn('limite_aprovado'),saldo=gn('saldo_aberto');
+  const limDisp=tipo==='antigo'?(p.limite_disponivel||(limAprov-saldo)):'N/A';
+
+  const reg={
+    'Data':                               todayStr(),
+    'Analista Responsável':               analista,
+    'Cliente (Razão Social)':             g('cliente'),
+    'CNPJ':                               g('cnpj')||'Não informado',
+    'Responsável':                        g('nome_cliente')||'Não informado',
+    'CPF do Cliente':                     g('cpf_cliente')||'Não informado',
+    'Representante':                      g('representante')||'Não informado',
+    'Tipo de Cliente':                    tipo==='novo'?'Novo':'Antigo',
+    'Tipo de Análise':                    g('tipo_analise')||'Não informado',
+    'Tempo de Abertura':                  tipo==='novo'?taLabel:'N/A',
+    'NF 1 (R$)':                          tipo==='novo'?gn('nf1'):'N/A',
+    'NF 2 (R$)':                          tipo==='novo'?gn('nf2'):'N/A',
+    'NF 3 (R$)':                          tipo==='novo'?gn('nf3'):'N/A',
+    'Soma das NFs (R$)':                  tipo==='novo'?(p.soma_nfs||(gn('nf1')+gn('nf2')+gn('nf3'))):'N/A',
+    'Média das NFs (R$)':                 tipo==='novo'?(p.media_nfs||parseFloat(((gn('nf1')+gn('nf2')+gn('nf3'))/3).toFixed(2))):'N/A',
+    'Situação da Loja':                   tipo==='novo'?(g('situacao_loja')||'Não informado'):'N/A',
+    'Limite Aprovado Anteriormente (R$)': tipo==='antigo'?limAprov:'N/A',
+    'Saldo em Aberto (R$)':               tipo==='antigo'?saldo:'N/A',
+    'Limite Disponível (R$)':             tipo==='antigo'?limDisp:'N/A',
+    'Qtd Parcelas Nova Compra':           tipo==='antigo'?(gn('qtd_parcelas')||'N/I'):'N/A',
+    'Parcelas Pagas em Dia':              tipo==='antigo'?(gn('pagas_dia')||'N/I'):'N/A',
+    'Parcelas Pagas em Atraso':           tipo==='antigo'?(gn('pagas_atraso')||'N/I'):'N/A',
+    'Houve Atraso Atual?':                tipo==='antigo'?g('atraso_atual'):'N/A',
+    'Média Parcelas em Dia (R$)':         tipo==='antigo'?gn('media_dia'):'N/A',
+    'Maior Parcela em Dia (R$)':          tipo==='antigo'?gn('maior_dia'):'N/A',
+    'Média Parcelas Atrasadas (R$)':      tipo==='antigo'?gn('media_atraso_val'):'N/A',
+    'Menor Parcela que Atrasa (R$)':      tipo==='antigo'?gn('menor_atraso'):'N/A',
+    'Parcela Segura (R$)':                tipo==='antigo'?(p.parcela_segura||0):'N/A',
+    'Limite Seguro (R$)':                 tipo==='antigo'?(p.limite_seguro||0):'N/A',
+    'Limite Histórico Positivo (R$)':     tipo==='antigo'?(p.limite_historico_positivo||0):'N/A',
+    'Histórico Geral de Pagamento':       tipo==='antigo'?(g('historico_geral')||'N/I'):'N/A',
+    'SPC / Serasa':                       g('spc_serasa')||'Não informado',
+    'Valor da Pendência (R$)':            gn('valor_pendencia')||0,
+    'Protesto / Restrição Grave?':        g('protesto'),
+    'Score':                              score,
+    'Valor Solicitado (R$)':              gn('valor_solicitado'),
+    'Pontuação de Risco':                 score,
+    'Classificação de Risco':             classLabel[classif]||classif,
+    'Valor Recomendado (R$)':             p.valor_recomendado||0,
+    'Decisão':                            p.decisao||'',
+    'Condição':                           p.condicao||'',
+    'Entrada Exigida?':                   p.entrada_exigida||'Não',
+    'Valor da Entrada (R$)':              p.valor_entrada||0,
+    'Pode Aumentar Limite?':              p.pode_aumentar_limite||'Não',
+    'Motivo da Limitação':                p.motivo_limitacao||'',
+    'Justificativa Resumida':             p.justificativa_resumida||'',
+    'Observações Comerciais':             g('obs')||''
+  };
+
+  registros.push(reg);
+  ultimoRegistro = reg;
+  atualizarContador();
+
+  document.getElementById('result-section').style.display='block';
+  document.getElementById('result-section').scrollIntoView({behavior:'smooth',block:'start'});
+
+  // ── DESTAQUE DOS CAMPOS QUE MAIS PESARAM ──
+  limparDestaquesRisco();
+  const spc=g('spc_serasa'), prot=g('protesto'), tipo2=g('tipo_cliente');
+  // SPC/Serasa
+  if(spc==='Protesto/restrição grave'||spc==='Pendência acima de R$ 1.000'){
+    marcarRisco('spc_serasa','campo-risco-critico','spc-risco-label','⚠️ Contribuição alta no score');
+  } else if(spc==='Pendência abaixo de R$ 1.000'){
+    marcarRisco('spc_serasa','campo-risco-alto','spc-risco-label','⚡ Contribuição média no score');
+  }
+  // Protesto
+  if(prot==='Sim'){ marcarRisco('protesto','campo-risco-critico','protesto-risco-label','⚠️ Contribuição alta no score'); }
+  // Campos de cliente antigo
+  if(tipo2==='antigo'){
+    if(g('atraso_atual')==='Sim'){ marcarRisco('atraso_atual','campo-risco-critico','atraso-risco-label','⚠️ Contribuição alta no score'); }
+    const hist=(g('historico_geral')||'').toLowerCase();
+    if(hist==='ruim'){ marcarRisco('historico_geral','campo-risco-critico','historico-risco-label','⚠️ Contribuição alta no score'); }
+    else if(hist==='médio'||hist==='medio'){ marcarRisco('historico_geral','campo-risco-alto','historico-risco-label','⚡ Contribuição média no score'); }
+  }
+  // Campos de cliente novo
+  if(tipo2==='novo'){
+    const loja=(g('situacao_loja')||'').toLowerCase();
+    if(loja==='duvidosa'){ marcarRisco('situacao_loja','campo-risco-critico',null,'⚠️ Contribuição alta'); }
+    else if(loja==='fraca'){ marcarRisco('situacao_loja','campo-risco-alto',null,'⚡ Contribuição média'); }
+    const ta=g('tempo_abertura');
+    if(ta==='ate_5'){ marcarRisco('tempo_abertura','campo-risco-alto',null,'⚡ Empresa jovem — contribuição média'); }
+  }
+}
+
+async function salvarTudo() {
+  const reg = ultimoRegistro;
+  if (!reg) { showGsStatus('error','⚠️ Nenhuma análise para salvar.'); return; }
+
+  const btn       = document.getElementById('btn-salvar-planilha');
+  const wrapProg  = document.getElementById('save-progress-wrap');
+  const progBar   = document.getElementById('save-progress-bar');
+  const progLabel = document.getElementById('save-progress-label');
+
+  const isNovo  = document.getElementById('tab-novo')?.classList.contains('active');
+  const temDocs = totalDocs() > 0;
+
+  btn.disabled = true;
+  wrapProg.style.display = 'block';
+  progBar.style.width = '0%';
+  progBar.style.background = 'var(--accent)';
+
+  // ── ETAPA 1: Salvar na planilha ──────────────────────────
+  progLabel.textContent = '1/2 — Salvando análise na planilha...';
+  showGsStatus('saving','💾 Salvando análise na planilha...');
+  progBar.style.width = '10%';
+
+  let planilhaOk = false;
+  try {
+    const r = await gsPost({ action: 'salvar_analise', registro: reg });
+    planilhaOk = r && r.ok;
+    progBar.style.width = '50%';
+    if (!planilhaOk) {
+      showGsStatus('error','⚠️ Erro ao salvar na planilha: ' + (r?.erro || 'Verifique o Apps Script.'));
+    }
+  } catch(e) {
+    showGsStatus('error','❌ Erro de conexão ao salvar na planilha.');
+  }
+
+  // ── ETAPA 2: Upload de documentos (só cliente novo com docs) ─
+  let driveOk = true;
+  let pastaUrl = '';
+  let totalEnviados = 0;
+  let totalErros = 0;
+
+  if (isNovo && temDocs) {
+    const razaoSocial = document.getElementById('cliente')?.value?.trim() || '';
+    const cnpj        = document.getElementById('cnpj')?.value?.trim() || '';
+    const nomePasta   = `${razaoSocial}${cnpj ? ' — ' + cnpj : ''}`;
+
+    const arquivos = [];
+    ['nf','fachada','outros'].forEach(tab => {
+      const cat = tab === 'nf' ? 'Notas Fiscais' : tab === 'fachada' ? 'Fachada' : 'Outros';
+      docStore[tab].forEach(doc => arquivos.push({ ...doc, categoria: cat }));
+    });
+
+    const total = arquivos.length;
+    progBar.style.width = '55%';
+
+    for (let i = 0; i < arquivos.length; i++) {
+      const arq = arquivos[i];
+      progLabel.textContent = `2/2 — Enviando arquivo ${i+1} de ${total}: ${arq.name}`;
+      showGsStatus('saving', `📁 Enviando documentos para o Drive (${i+1}/${total})...`);
+
+      try {
+        const base64Data = arq.data.split(',')[1];
+        const r = await gsPost({
+          action: 'upload_drive',
+          nomePasta,
+          nomeArquivo: arq.name,
+          categoria:   arq.categoria,
+          mimeType:    arq.type || 'application/octet-stream',
+          base64Data
+        });
+        if (r && r.ok) {
+          totalEnviados++;
+          if (r.pastaUrl) pastaUrl = r.pastaUrl;
+        } else {
+          totalErros++;
+          driveOk = false;
+        }
+      } catch(e) {
+        totalErros++;
+        driveOk = false;
+      }
+
+      const pct = 55 + Math.round(((i + 1) / total) * 43);
+      progBar.style.width = pct + '%';
+    }
+  }
+
+  // ── RESULTADO FINAL ──────────────────────────────────────
+  progBar.style.width = '100%';
+  wrapProg.style.display = 'none';
+
+  if (planilhaOk && driveOk) {
+    let msg = '✅ Tudo salvo com sucesso!';
+    if (isNovo && temDocs) msg += ` Planilha + ${totalEnviados} arquivo(s) no Drive.`;
+    else msg += ' Análise registrada na planilha.';
+    if (pastaUrl) msg += `\n📁 Pasta: ${pastaUrl}`;
+    showGsStatus('saved', msg);
+    btn.textContent = '✅ Salvo!';
+    setTimeout(() => { btn.disabled = false; btn.textContent = '💾 Salvar Planilha + Arquivos'; }, 3500);
+  } else if (planilhaOk && !driveOk) {
+    showGsStatus('error', `⚠️ Planilha salva, mas ${totalErros} arquivo(s) falharam no Drive. Verifique o Apps Script.`);
+    btn.disabled = false; btn.textContent = '💾 Salvar Planilha + Arquivos';
+  } else {
+    btn.disabled = false; btn.textContent = '💾 Salvar Planilha + Arquivos';
+  }
+}
+
+async function salvarNaPlanilha(reg) {
+  return salvarTudo();
+}
+
+function baixarXLSX() {
+  if (registros.length===0) { showError('Nenhuma análise realizada ainda.'); return; }
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.json_to_sheet(registros);
+  const cols=Object.keys(registros[0]);
+  ws['!cols']=cols.map(k=>({wch:Math.max(k.length+4,20)}));
+  ws['!freeze']={xSplit:0,ySplit:1};
+  XLSX.utils.book_append_sheet(wb,ws,'Análises de Crédito');
+  XLSX.writeFile(wb,`analise-credito-${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.xlsx`);
+}
+
+// ══════════════════════════════════════════════════════════
+// ADMINISTRADOR
+// ══════════════════════════════════════════════════════════
+const ADM_PASS_HASH = hashPass('dp2025adm'); // senha padrão: dp2025adm
+
+function doAdminLogin() {
+  const pass = document.getElementById('adm-pass').value;
+  if (!pass) { showAuthError('adm-error','Informe a senha.'); return; }
+  if (hashPass(pass) !== ADM_PASS_HASH) {
+    showAuthError('adm-error','Senha de administrador incorreta.');
+    document.getElementById('adm-pass').value = '';
+    return;
+  }
+  document.getElementById('admin-lock').style.display = 'none';
+  document.getElementById('admin-panel').style.display = 'block';
+  renderAdminUsers();
+}
+
+function lockAdmin() {
+  document.getElementById('admin-lock').style.display = 'block';
+  document.getElementById('admin-panel').style.display = 'none';
+  document.getElementById('adm-pass').value = '';
+}
+
+async function renderAdminUsers() {
+  const body = document.getElementById('admin-users-body');
+  const status = document.getElementById('adm-status');
+  body.innerHTML = '<div style="font-size:12px;color:var(--muted);font-family:var(--mono);padding:8px 0">⏳ Carregando usuários...</div>';
+  if(status) status.textContent = '';
+  try {
+    const r = await gsPost({ action: 'buscar_usuarios' });
+    if (!r.ok || !r.users || r.users.length === 0) {
+      body.innerHTML = '<div style="font-size:12px;color:var(--muted);font-family:var(--mono);padding:8px 0">Nenhum usuário cadastrado.</div>';
+      if(status) status.textContent = '0 usuários encontrados.';
+      return;
+    }
+    body.innerHTML = r.users.map((u, i) => `
+      <div class="user-item" style="margin-bottom:6px;flex-direction:column;align-items:flex-start;gap:4px;padding:10px 14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--accent2);font-weight:700;">#${i+1} &nbsp;👤 ${u.name}</span>
+          <button class="u-del" onclick="adminDeleteUser('${u.username}','${u.name}')" title="Remover usuário">✕</button>
+        </div>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">@${u.username} &nbsp;·&nbsp; CPF: ${u.cpf||'—'}</span>
+      </div>`).join('');
+    if(status) status.textContent = `${r.users.length} usuário(s) cadastrado(s).`;
+    window._admUsers = r.users;
+  } catch(e) {
+    body.innerHTML = '<div style="font-size:12px;color:var(--red);font-family:var(--mono);padding:8px 0">❌ Erro ao carregar. Verifique a conexão.</div>';
+  }
+}
+
+async function adminDeleteUser(username, nome) {
+  if (!confirm(`Remover o usuário "${nome}"?`)) return;
+  try {
+    const r = await gsPost({ action: 'deletar_usuario', username });
+    if (!r.ok) { alert('Erro ao remover: ' + (r.erro || '')); return; }
+    renderAdminUsers();
+  } catch(e) { alert('Erro de conexão.'); }
+}
+
+function exportUsersXLSX() {
+  const users = window._admUsers;
+  if (!users || users.length === 0) {
+    document.getElementById('adm-status').textContent = '⚠️ Nenhum usuário para exportar.';
+    return;
+  }
+  const data = users.map((u, i) => ({
+    '#': i + 1,
+    'Nome Completo': u.name,
+    'Usuário': u.username,
+    'CPF': u.cpf
+  }));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [{ wch: 5 }, { wch: 30 }, { wch: 20 }, { wch: 18 }];
+  XLSX.utils.book_append_sheet(wb, ws, 'Usuários');
+  XLSX.writeFile(wb, `usuarios-analise-dp-${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.xlsx`);
+  document.getElementById('adm-status').textContent = '✅ XLSX de usuários exportado!';
+}
+
+async function gravarCabecalho() {
+  const btn = document.getElementById('btn-gravar-cab');
+  const st  = document.getElementById('cab-status');
+  btn.disabled = true; btn.textContent = '⏳ Gravando...';
+  st.style.display = 'block';
+  st.style.color = '#c084fc';
+  st.style.background = '#1a0e2a';
+  st.style.borderColor = '#3a1e5c';
+  st.textContent = '⏳ Gravando cabeçalho na planilha...';
+  const cabecalho = [
+    'Data','Analista Responsável','Cliente (Razão Social)','CNPJ',
+    'Responsável','CPF do Cliente','Representante',
+    'Tipo de Cliente','Tipo de Análise','Tempo de Abertura',
+    'NF 1 (R$)','NF 2 (R$)','NF 3 (R$)','Soma das NFs (R$)','Média das NFs (R$)',
+    'Situação da Loja','Limite Aprovado Anteriormente (R$)','Saldo em Aberto (R$)',
+    'Limite Disponível (R$)','Qtd Parcelas Nova Compra','Parcelas Pagas em Dia',
+    'Parcelas Pagas em Atraso','Houve Atraso Atual?','Média Parcelas em Dia (R$)',
+    'Maior Parcela em Dia (R$)','Média Parcelas Atrasadas (R$)','Menor Parcela que Atrasa (R$)',
+    'Parcela Segura (R$)','Limite Seguro (R$)','Limite Histórico Positivo (R$)',
+    'Histórico Geral de Pagamento','SPC / Serasa','Valor da Pendência (R$)',
+    'Protesto / Restrição Grave?','Score','Valor Solicitado (R$)',
+    'Pontuação de Risco','Classificação de Risco','Valor Recomendado (R$)',
+    'Decisão','Condição','Entrada Exigida?','Valor da Entrada (R$)',
+    'Pode Aumentar Limite?','Motivo da Limitação','Justificativa Resumida','Observações Comerciais'
+  ];
+  try {
+    const r = await gsPost({ action: 'gravar_cabecalho', cabecalho });
+    if (r && r.ok) {
+      st.style.color = '#4ade80';
+      st.style.background = '#0e2a18';
+      st.style.borderColor = '#1e5c32';
+      st.textContent = '✅ Cabeçalho gravado com sucesso na linha 1 da aba "analises"!';
+    } else {
+      st.style.color = '#f87171';
+      st.style.background = '#2a0e0e';
+      st.style.borderColor = '#5a1a1a';
+      st.textContent = '❌ Erro: ' + (r && r.erro ? r.erro : 'Verifique se o Apps Script tem o case "gravar_cabecalho".');
+    }
+  } catch(e) {
+    st.style.color = '#f87171';
+    st.style.background = '#2a0e0e';
+    st.style.borderColor = '#5a1a1a';
+    st.textContent = '❌ Erro de conexão.';
+  } finally {
+    btn.disabled = false; btn.textContent = '📋 Gravar Cabeçalho';
+    setTimeout(() => { st.style.display = 'none'; }, 6000);
+  }
+}
+
+async function exportAnalisesXLSX() {
+  const statusEl = document.getElementById('adm-analises-status');
+  statusEl.style.display = 'block';
+  statusEl.style.color = 'var(--muted)';
+  statusEl.textContent = '⏳ Buscando análises na planilha...';
+  try {
+    const r = await gsPost({ action: 'buscar_analises' });
+    if (!r.ok) {
+      statusEl.style.color = '#f87171';
+      statusEl.textContent = '❌ Erro: ' + (r.erro || 'Verifique se a action "buscar_analises" está no Apps Script.');
+      return;
+    }
+    const analises = r.analises || [];
+    if (analises.length === 0) {
+      statusEl.style.color = 'var(--muted)';
+      statusEl.textContent = '⚠️ Nenhuma análise encontrada na planilha.';
+      return;
+    }
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(analises);
+    const cols = Object.keys(analises[0]);
+    ws['!cols'] = cols.map(k => ({ wch: Math.max(k.length + 4, 18) }));
+    XLSX.utils.book_append_sheet(wb, ws, 'Análises de Crédito');
+    XLSX.writeFile(wb, `analises-credito-dp-${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.xlsx`);
+    statusEl.style.color = '#4ade80';
+    statusEl.textContent = `✅ ${analises.length} análise(s) exportada(s) com sucesso!`;
+    setTimeout(() => { statusEl.style.display = 'none'; }, 4000);
+  } catch(e) {
+    statusEl.style.color = '#f87171';
+    statusEl.textContent = '❌ Erro de conexão ao buscar análises.';
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════
+// NAVEGAÇÃO ENTRE PAINÉIS
+// ══════════════════════════════════════════════════════════
+function switchNav(aba) {
+  document.getElementById('painel-dashboard').style.display = aba === 'dashboard' ? 'block' : 'none';
+  document.getElementById('painel-analise').style.display   = aba === 'analise'   ? 'block' : 'none';
+  document.getElementById('painel-consulta').style.display  = aba === 'consulta'  ? 'block' : 'none';
+  ['dashboard','analise','consulta'].forEach(t => {
+    const btn = document.getElementById('nav-'+t);
+    if (!btn) return;
+    const active = t === aba;
+    btn.classList.toggle('active', active);
+  });
+  if (aba === 'dashboard') carregarDashboard();
+}
+
+async function carregarDashboard() {
+  const st = document.getElementById('dash-status');
+  st.textContent = '⏳ Carregando dados...';
+  try {
+    const r = await gsPost({ action: 'buscar_analises', termo: '', campo: 'todos' });
+    if (!r.ok || !r.analises || r.analises.length === 0) {
+      st.textContent = r.analises && r.analises.length === 0 ? '⚠️ Nenhuma análise encontrada na planilha.' : '❌ Erro ao carregar: ' + (r.erro || '');
+      return;
+    }
+    const lista = r.analises;
+    st.textContent = `✅ ${lista.length} análise(s) carregada(s).`;
+
+    // Totais
+    const total = lista.length;
+    const liberados = lista.filter(a => (a['Decisão']||'').toLowerCase().includes('liberado')).length;
+    const recusados = lista.filter(a => (a['Decisão']||'').toLowerCase().includes('recusado') || (a['Decisão']||'').toLowerCase().includes('vista')).length;
+    const superior  = lista.filter(a => (a['Decisão']||'').toLowerCase().includes('superior')).length;
+
+    document.getElementById('dash-total').textContent     = total;
+    document.getElementById('dash-liberados').textContent = liberados;
+    document.getElementById('dash-recusados').textContent = recusados;
+    document.getElementById('dash-superior').textContent  = superior;
+
+    // Volume
+    const volumes = lista.map(a => parseFloat(a['Valor Recomendado (R$)'])||0);
+    const totalVol = volumes.reduce((s,v)=>s+v,0);
+    const ticket   = total > 0 ? totalVol/total : 0;
+    const fmtR = v => v > 0 ? 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2}) : 'R$ 0,00';
+    document.getElementById('dash-volume').textContent = fmtR(totalVol);
+    document.getElementById('dash-ticket').textContent = fmtR(ticket);
+
+    // Risco
+    const riscos = { 'Baixo':0, 'Médio':0, 'Alto':0, 'Crítico':0 };
+    lista.forEach(a => {
+      const c = (a['Classificação de Risco']||'').toLowerCase();
+      if (c.includes('baixo')) riscos['Baixo']++;
+      else if (c.includes('médio')||c.includes('medio')) riscos['Médio']++;
+      else if (c.includes('alto')) riscos['Alto']++;
+      else if (c.includes('crít')||c.includes('crit')) riscos['Crítico']++;
+    });
+    const riscoCores = { 'Baixo':'#4ade80','Médio':'#fbbf24','Alto':'#fb923c','Crítico':'#f87171' };
+    document.getElementById('dash-risco-bars').innerHTML = Object.entries(riscos).map(([k,v]) => {
+      const pct = total > 0 ? Math.round(v/total*100) : 0;
+      return `<div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;margin-bottom:4px;">
+          <span style="color:${riscoCores[k]}">${k}</span><span style="color:var(--muted)">${v} (${pct}%)</span>
+        </div>
+        <div style="background:#1a1c1f;border-radius:100px;height:6px;overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:${riscoCores[k]};border-radius:100px;transition:width 0.6s ease;"></div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Tipo de cliente
+    const novos  = lista.filter(a => (a['Tipo de Cliente']||'').toLowerCase() === 'novo').length;
+    const antigos = lista.filter(a => (a['Tipo de Cliente']||'').toLowerCase() === 'antigo').length;
+    const tipoData = [['Novo',novos,'#60a5fa'],['Antigo',antigos,'#c084fc']];
+    document.getElementById('dash-tipo-bars').innerHTML = tipoData.map(([k,v,cor]) => {
+      const pct = total > 0 ? Math.round(v/total*100) : 0;
+      return `<div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;margin-bottom:4px;">
+          <span style="color:${cor}">${k}</span><span style="color:var(--muted)">${v} (${pct}%)</span>
+        </div>
+        <div style="background:#1a1c1f;border-radius:100px;height:6px;overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:${cor};border-radius:100px;transition:width 0.6s ease;"></div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Por analista
+    const analistaMap = {};
+    lista.forEach(a => {
+      const nome = (a['Analista Responsável']||'Desconhecido').trim();
+      if (!analistaMap[nome]) analistaMap[nome] = { total:0, liberados:0, vol:0 };
+      analistaMap[nome].total++;
+      if ((a['Decisão']||'').toLowerCase().includes('liberado')) analistaMap[nome].liberados++;
+      analistaMap[nome].vol += parseFloat(a['Valor Recomendado (R$)'])||0;
+    });
+    document.getElementById('dash-analistas').innerHTML = Object.entries(analistaMap)
+      .sort((a,b) => b[1].total - a[1].total)
+      .map(([nome, d]) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111315;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;background:rgba(232,160,32,0.15);border:1px solid var(--accent2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--accent2);">${nome.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase()}</div>
+            <div>
+              <div style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text);">${nome}</div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">${d.total} análise(s) · ${d.liberados} liberado(s)</div>
+            </div>
+          </div>
+          <div style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent2);">${fmtR(d.vol)}</div>
+        </div>`).join('') || '<div style="font-family:var(--mono);font-size:12px;color:var(--muted);">Nenhum dado.</div>';
+
+    // Últimas 5
+    const ultimas = [...lista].reverse().slice(0,5);
+    const decColor = d => {
+      const v = (d||'').toLowerCase();
+      if (v.includes('liberado')) return '#4ade80';
+      if (v.includes('recusado')||v.includes('vista')) return '#f87171';
+      if (v.includes('superior')) return '#60a5fa';
+      return '#fbbf24';
+    };
+    document.getElementById('dash-ultimas').innerHTML = ultimas.map(a => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111315;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+        <div>
+          <div style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text);">${a['Cliente (Razão Social)']||'—'}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">${a['Data']||'—'} · ${a['Analista Responsável']||'—'}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:${decColor(a['Decisão'])}">${a['Decisão']||'—'}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">${fmtR(parseFloat(a['Valor Recomendado (R$)'])||0)}</div>
+        </div>
+      </div>`).join('') || '<div style="font-family:var(--mono);font-size:12px;color:var(--muted);">Nenhuma análise ainda.</div>';
+
+  } catch(e) {
+    st.textContent = '❌ Erro de conexão ao carregar dashboard.';
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// CONSULTA DE ANÁLISES
+// ══════════════════════════════════════════════════════════
+
+const _placeholders = {
+  cliente:  'Ex: Gabriel Motos',
+  cnpj:     'Ex: 46.668.123/0001-00',
+  analista: 'Ex: João Silva',
+  todos:    'Deixe em branco para ver todas'
+};
+const _labels = {
+  cliente:  'Buscar por nome do cliente (Razão Social)',
+  cnpj:     'Buscar por CNPJ',
+  analista: 'Buscar por analista responsável',
+  todos:    'Todos os campos — deixe em branco para listar todas'
+};
+
+function filtrarPor(tipo) {
+  _filtroAtivo = tipo;
+  ['cliente','cnpj','analista','todos'].forEach(t => {
+    const el = document.getElementById('filtro-'+t);
+    if (el) el.classList.toggle('filtro-ativo', t === tipo);
+  });
+
+  const inputWrap    = document.getElementById('consulta-input-wrap');
+  const analistaWrap = document.getElementById('consulta-analista-wrap');
+
+  if (tipo === 'analista') {
+    // Mostra o select de analista, esconde o campo de texto
+    inputWrap.style.display    = 'none';
+    analistaWrap.style.display = 'block';
+    carregarAnalistasSelect();
+  } else {
+    // Mostra o campo de texto normal, esconde o select
+    inputWrap.style.display    = 'block';
+    analistaWrap.style.display = 'none';
+    document.getElementById('consulta-input').placeholder = _placeholders[tipo] || '';
+    document.getElementById('consulta-label').textContent  = _labels[tipo] || '';
+    if (tipo === 'todos') {
+      document.getElementById('consulta-input').value = '';
+    }
+  }
+}
+
+let _analistasCarregados = false;
+
+async function carregarAnalistasSelect() {
+  // Sempre recarrega ao trocar para a aba analista
+  _analistasCarregados = false;
+  const sel = document.getElementById('consulta-analista-select');
+  sel.innerHTML = '<option value="">⏳ Carregando analistas...</option>';
+  try {
+    // Busca lista de usuários cadastrados (mais confiável que varrer análises)
+    const r = await gsPost({ action: 'buscar_usuarios' });
+    if (r.ok && r.users && r.users.length > 0) {
+      const analistas = r.users
+        .map(u => (u.name || '').trim())
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+      sel.innerHTML = '<option value="">— Selecione um analista —</option>' +
+        analistas.map(a => `<option value="${a}">${a}</option>`).join('');
+      _analistasCarregados = true;
+      return;
+    }
+    // Fallback: varre as análises e coleta nomes únicos
+    const r2 = await gsPost({ action: 'buscar_analises', termo: '', campo: 'todos' });
+    if (!r2.ok || !r2.analises || r2.analises.length === 0) {
+      sel.innerHTML = '<option value="">Nenhum analista encontrado</option>';
+      return;
+    }
+    const set = new Set();
+    (r2.analises || []).forEach(a => {
+      const nome = (a['Analista Responsável'] || '').trim();
+      if (nome && nome !== 'Não' && nome !== 'Sim') set.add(nome);
+    });
+    const analistas = Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    if (analistas.length === 0) {
+      sel.innerHTML = '<option value="">Nenhum analista encontrado</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">— Selecione um analista —</option>' +
+      analistas.map(a => `<option value="${a}">${a}</option>`).join('');
+    _analistasCarregados = true;
+  } catch(e) {
+    sel.innerHTML = '<option value="">⚠️ Erro de conexão</option>';
+  }
+}
+
+async function buscarAnalises() {
+  const btn = document.getElementById('btn-buscar');
+  const status = document.getElementById('consulta-status');
+  const campo = _filtroAtivo || 'cliente';
+
+  // Pega o termo do lugar certo dependendo do filtro ativo
+  let termo = '';
+  if (campo === 'analista') {
+    termo = (document.getElementById('consulta-analista-select')?.value || '').trim();
+    if (!termo) {
+      status.style.display = 'block';
+      status.style.color = '#f87171';
+      status.textContent = '⚠️ Selecione um analista na lista.';
+      return;
+    }
+  } else {
+    termo = (document.getElementById('consulta-input')?.value || '').trim();
+  }
+
+  // "todos" sem termo = listar tudo (paginado)
+  btn.disabled = true; btn.textContent = '⏳ Buscando...';
+  status.style.display = 'block'; status.style.color = 'var(--muted)';
+  status.textContent = '⏳ Buscando na planilha...';
+  document.getElementById('consulta-resultados').innerHTML = '';
+  _paginaAtual = 1;
+
+  let dots = 0;
+  const loadInterval = setInterval(() => {
+    dots = (dots + 1) % 4;
+    status.textContent = '⏳ Aguardando resposta do Apps Script' + '.'.repeat(dots + 1);
+  }, 600);
+
+  try {
+    const r = await gsPost({ action: 'buscar_analises', termo, campo });
+    clearInterval(loadInterval);
+
+    if (!r.ok) {
+      status.style.color = '#f87171';
+      status.innerHTML = `❌ Erro ao ler análises: <strong>${r.erro || 'sem detalhes'}</strong><br>
+        <span style="color:var(--muted);font-size:11px;">Verifique se a aba da planilha se chama exatamente <strong style="color:var(--text)">analises</strong> (minúsculo, sem acento) e se o Apps Script foi reimplantado como nova versão.</span>`;
+      btn.disabled = false; btn.textContent = '🔍 Buscar';
+      return;
+    }
+
+    _resultadosAtuais = r.analises || [];
+    const total = r.total || _resultadosAtuais.length;
+
+    status.style.color = 'var(--green)';
+    if (termo) {
+      status.textContent = `✅ ${_resultadosAtuais.length} resultado(s) para "${termo}"${total > _resultadosAtuais.length ? ` (de ${total} análises)` : ''}.`;
+    } else {
+      status.textContent = `✅ ${_resultadosAtuais.length} análise(s) encontrada(s).`;
+    }
+
+    // Aplica filtro de período se ativo
+    if (_periodoAtivo && _periodoAtivo !== '') {
+      aplicarFiltroPeriodo();
+    } else {
+      window._resultadosFiltrados = _resultadosAtuais;
+      renderPagina(1);
+    }
+
+  } catch(e) {
+    clearInterval(loadInterval);
+    status.style.color = '#f87171';
+    status.innerHTML = `❌ Timeout — o Apps Script demorou demais para responder.<br>
+      <span style="color:var(--muted);font-size:11px;">
+      • Verifique se o deploy está como "Qualquer pessoa"<br>
+      • A aba deve se chamar <strong style="color:var(--text)">analises</strong> (minúsculo)<br>
+      • Tente reimplantar o Apps Script como nova versão
+      </span>`;
+  } finally {
+    clearInterval(loadInterval);
+    btn.disabled = false; btn.textContent = '🔍 Buscar';
+  }
+}
+
+function renderPagina(pagina) {
+  _paginaAtual = pagina;
+  // Usa lista filtrada se disponível, senão usa todos
+  const fonte = (window._resultadosFiltrados && window._resultadosFiltrados !== _resultadosAtuais)
+    ? window._resultadosFiltrados
+    : _resultadosAtuais;
+  const total = fonte.length;
+  const totalPags = Math.ceil(total / _POR_PAGINA);
+  const inicio = (pagina - 1) * _POR_PAGINA;
+  const fim = Math.min(inicio + _POR_PAGINA, total);
+  const fatia = fonte.slice(inicio, fim);
+
+  // Gera números de página com ellipsis para muitas páginas
+  function gerarBotoesPaginas(atual, total) {
+    if (total <= 7) {
+      return Array.from({length: total}, (_, i) => i + 1);
+    }
+    const pages = new Set([1, total, atual]);
+    if (atual > 1) pages.add(atual - 1);
+    if (atual < total) pages.add(atual + 1);
+    const sorted = Array.from(pages).sort((a, b) => a - b);
+    const result = [];
+    let prev = 0;
+    for (const p of sorted) {
+      if (p - prev > 1) result.push('...');
+      result.push(p);
+      prev = p;
+    }
+    return result;
+  }
+
+  const paginacao = totalPags > 0 ? `
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;flex-wrap:wrap;padding:12px 0;border-top:1px solid var(--border);">
+      <button onclick="renderPagina(${pagina-1})" ${pagina<=1?'disabled':''} style="padding:7px 16px;background:#1a1c1f;color:${pagina<=1?'var(--muted)':'var(--text)'};font-family:var(--mono);font-size:12px;font-weight:700;border:1px solid var(--border);border-radius:7px;cursor:${pagina<=1?'not-allowed':'pointer'};">← Anterior</button>
+      ${gerarBotoesPaginas(pagina, totalPags).map(p => p === '...'
+        ? `<span style="padding:7px 8px;font-family:var(--mono);font-size:12px;color:var(--muted);">…</span>`
+        : `<button onclick="renderPagina(${p})" style="padding:7px 13px;background:${p===pagina?'var(--accent)':'#1a1c1f'};color:${p===pagina?'#fff':'var(--muted)'};font-family:var(--mono);font-size:12px;font-weight:700;border:1px solid ${p===pagina?'var(--accent)':'var(--border)'};border-radius:7px;cursor:pointer;">${p}</button>`
+      ).join('')}
+      <button onclick="renderPagina(${pagina+1})" ${pagina>=totalPags?'disabled':''} style="padding:7px 16px;background:#1a1c1f;color:${pagina>=totalPags?'var(--muted)':'var(--text)'};font-family:var(--mono);font-size:12px;font-weight:700;border:1px solid var(--border);border-radius:7px;cursor:${pagina>=totalPags?'not-allowed':'pointer'};">Próxima →</button>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:4px;">Página ${pagina} de ${totalPags} · ${total} resultado(s)</span>
+    </div>` : '';
+
+  const el = document.getElementById('consulta-resultados');
+  el.innerHTML = renderConsultaResultados(fatia, inicio) + paginacao;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function filtrarConsulta() {}
+
+function limparConsulta() {
+  document.getElementById('consulta-input').value = '';
+  const sel = document.getElementById('consulta-analista-select');
+  if (sel) sel.selectedIndex = 0;
+  document.getElementById('consulta-resultados').innerHTML = '';
+  _resultadosAtuais = [];
+  _paginaAtual = 1;
+  const status = document.getElementById('consulta-status');
+  status.style.display = 'none';
+  status.textContent = '';
+}
+
+function renderConsultaResultados(lista, offset) {
+  offset = offset || 0;
+  if (!lista || lista.length === 0) {
+    return '<div style="text-align:center;padding:40px;font-family:var(--mono);font-size:13px;color:var(--muted);">Nenhuma análise encontrada.</div>';
+  }
+
+  const decClass = (dec) => {
+    const d = (dec||'').toLowerCase();
+    if (d.includes('antecipação') || d.includes('parcial') || d.includes('entrada')) return 'parcial';
+    if (d.includes('liberado')) return 'liberado';
+    if (d.includes('recusado') || d.includes('vista')) return 'recusado';
+    return 'superior';
+  };
+
+  const decColor = (dec) => {
+    const d = decClass(dec);
+    if (d === 'liberado') return 'var(--green)';
+    if (d === 'parcial') return 'var(--yellow)';
+    if (d === 'recusado') return 'var(--red)';
+    return 'var(--blue)';
+  };
+
+  const riskColor = (classif) => {
+    const c = (classif||'').toLowerCase();
+    if (c.includes('baixo')) return '#4ade80';
+    if (c.includes('médio') || c.includes('medio')) return '#fbbf24';
+    if (c.includes('alto')) return '#fb923c';
+    return '#f87171';
+  };
+
+  return lista.map((a, i) => {
+    const idx = offset + i;
+    const cliente = a['Cliente (Razão Social)'] || '—';
+    const cnpj = a['CNPJ'] || '—';
+    const analista = a['Analista Responsável'] || '—';
+    const data = a['Data'] || '—';
+    const tipo = a['Tipo de Cliente'] || '—';
+    const tipoAnalise = a['Tipo de Análise'] || '—';
+    const decisao = a['Decisão'] || '—';
+    const condicao = a['Condição'] || '—';
+    const score = a['Pontuação de Risco'] || '—';
+    const classif = a['Classificação de Risco'] || '—';
+    const valorRec = a['Valor Recomendado (R$)'];
+    const valorSol = a['Valor Solicitado (R$)'];
+    const spc = a['SPC / Serasa'] || '—';
+    const protesto = a['Protesto / Restrição Grave?'] || '—';
+    const repr = a['Representante'] || '—';
+    const obs = a['Observações Comerciais'] || '';
+
+    // Dados cliente antigo
+    const limAprov = a['Limite Aprovado Anteriormente (R$)'];
+    const saldo = a['Saldo em Aberto (R$)'];
+    const limDisp = a['Limite Disponível (R$)'];
+    const pgDia = a['Parcelas Pagas em Dia'];
+    const pgAtraso = a['Parcelas Pagas em Atraso'];
+    const atrasoAtual = a['Houve Atraso Atual?'];
+    const hist = a['Histórico Geral de Pagamento'];
+
+    // Dados cliente novo
+    const somaNfs = a['Soma das NFs (R$)'];
+    const mediaNfs = a['Média das NFs (R$)'];
+    const tempAb = a['Tempo de Abertura'];
+    const sitLoja = a['Situação da Loja'];
+
+    const fmtVal = (v) => {
+      if (v === 'N/A' || v === undefined || v === null || v === '') return '—';
+      const n = parseFloat(v);
+      if (isNaN(n)) return v;
+      return 'R$ ' + n.toLocaleString('pt-BR', {minimumFractionDigits:2});
+    };
+
+    const isAntigo = tipo === 'Antigo';
+
+    return `
+    <div class="consulta-card">
+      <div class="consulta-card-header" onclick="toggleConsultaCard(${idx})">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
+          <div style="width:38px;height:38px;background:rgba(217,79,61,0.15);border:1px solid var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0;">${idx+1}</div>
+          <div style="min-width:0;">
+            <div style="font-size:15px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cliente}</div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px;">CNPJ: ${cnpj} &nbsp;·&nbsp; ${data} &nbsp;·&nbsp; ${analista}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div style="text-align:right;">
+            <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:${decColor(decisao)}">${decisao}</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;">${fmtVal(valorRec)}</div>
+          </div>
+          <div id="chevron-${idx}" style="color:var(--muted);font-size:14px;transition:transform 0.2s;">▼</div>
+        </div>
+      </div>
+      <div class="consulta-card-body" id="body-${idx}">
+        <!-- Dados do cliente -->
+        <div style="margin-top:16px;">
+          <div style="font-size:9px;font-family:var(--mono);color:var(--accent2);letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">📋 Dados do Cliente</div>
+          <div class="consulta-grid">
+            <div class="consulta-item"><div class="ci-label">Cliente</div><div class="ci-value">${cliente}</div></div>
+            <div class="consulta-item"><div class="ci-label">CNPJ</div><div class="ci-value">${cnpj}</div></div>
+            <div class="consulta-item"><div class="ci-label">Responsável</div><div class="ci-value">${a['Responsável']||'—'}</div></div>
+            <div class="consulta-item"><div class="ci-label">Tipo</div><div class="ci-value">${tipo} · ${tipoAnalise}</div></div>
+            <div class="consulta-item"><div class="ci-label">SPC/Serasa</div><div class="ci-value">${spc}</div></div>
+            <div class="consulta-item"><div class="ci-label">Protesto</div><div class="ci-value">${protesto}</div></div>
+            <div class="consulta-item"><div class="ci-label">Valor Solicitado</div><div class="ci-value" style="color:var(--accent2)">${fmtVal(valorSol)}</div></div>
+            <div class="consulta-item"><div class="ci-label">Representante</div><div class="ci-value">${repr}</div></div>
+          </div>
+        </div>
+
+        <!-- Dados financeiros -->
+        <div style="margin-top:16px;">
+          <div style="font-size:9px;font-family:var(--mono);color:var(--accent2);letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">${isAntigo ? '💳 Dados Financeiros (Cliente Antigo)' : '🧾 Dados Financeiros (Cliente Novo)'}</div>
+          <div class="consulta-grid">
+            ${isAntigo ? `
+            <div class="consulta-item"><div class="ci-label">Limite Aprovado</div><div class="ci-value">${fmtVal(limAprov)}</div></div>
+            <div class="consulta-item"><div class="ci-label">Saldo em Aberto</div><div class="ci-value">${fmtVal(saldo)}</div></div>
+            <div class="consulta-item"><div class="ci-label">Limite Disponível</div><div class="ci-value">${fmtVal(limDisp)}</div></div>
+            <div class="consulta-item"><div class="ci-label">Histórico Geral</div><div class="ci-value">${hist||'—'}</div></div>
+            <div class="consulta-item"><div class="ci-label">Parcelas em Dia</div><div class="ci-value">${pgDia||'—'}</div></div>
+            <div class="consulta-item"><div class="ci-label">Parcelas em Atraso</div><div class="ci-value">${pgAtraso||'—'}</div></div>
+            <div class="consulta-item"><div class="ci-label">Atraso Atual</div><div class="ci-value" style="color:${atrasoAtual==='Sim'?'var(--red)':'var(--green)'}">${atrasoAtual||'—'}</div></div>
+            ` : `
+            <div class="consulta-item"><div class="ci-label">Tempo de Abertura</div><div class="ci-value">${tempAb||'—'}</div></div>
+            <div class="consulta-item"><div class="ci-label">Soma das NFs</div><div class="ci-value">${fmtVal(somaNfs)}</div></div>
+            <div class="consulta-item"><div class="ci-label">Média das NFs</div><div class="ci-value">${fmtVal(mediaNfs)}</div></div>
+            <div class="consulta-item"><div class="ci-label">Situação da Loja</div><div class="ci-value">${sitLoja||'—'}</div></div>
+            `}
+          </div>
+        </div>
+
+        <!-- Resultado da análise -->
+        <div style="margin-top:16px;">
+          <div style="font-size:9px;font-family:var(--mono);color:var(--accent2);letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">📊 Resultado da Análise</div>
+          <div class="consulta-grid">
+            <div class="consulta-item"><div class="ci-label">Score de Risco</div><div class="ci-value" style="font-size:22px;color:${riskColor(classif)}">${score}/100</div></div>
+            <div class="consulta-item"><div class="ci-label">Classificação</div><div class="ci-value" style="color:${riskColor(classif)}">${classif}</div></div>
+            <div class="consulta-item"><div class="ci-label">Decisão</div><div class="ci-value" style="color:${decColor(decisao)}">${decisao}</div></div>
+            <div class="consulta-item"><div class="ci-label">Valor Recomendado</div><div class="ci-value" style="color:var(--green)">${fmtVal(valorRec)}</div></div>
+          </div>
+          <div style="margin-top:10px;background:#111315;border:1px solid var(--border);border-radius:8px;padding:14px;">
+            <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;font-weight:700;margin-bottom:6px;">Condição</div>
+            <div style="font-family:var(--mono);font-size:12px;color:var(--text);line-height:1.7;">${condicao}</div>
+          </div>
+          ${obs ? `<div style="margin-top:8px;background:#111315;border:1px solid var(--border);border-radius:8px;padding:14px;"><div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;font-weight:700;margin-bottom:6px;">Observações</div><div style="font-family:var(--mono);font-size:12px;color:var(--muted);line-height:1.7;">${obs}</div></div>` : ''}
+          <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">Analista: <strong style="color:var(--text)">${analista}</strong> &nbsp;·&nbsp; Data: <strong style="color:var(--text)">${data}</strong></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button onclick="gerarDocumento(${idx})" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#0e2a1a;border:1px solid #1e5c32;color:#4ade80;font-family:var(--mono);font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='#4ade80'" onmouseout="this.style.borderColor='#1e5c32'">📄 Gerar Documento</button>
+              <button onclick="duplicarAnalise(${idx})" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#0e1a2a;border:1px solid #1e3a5c;color:#60a5fa;font-family:var(--mono);font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='#60a5fa'" onmouseout="this.style.borderColor='#1e3a5c'">📋 Duplicar análise</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── FILTRO POR PERÍODO ──
+let _periodoAtivo = '';
+
+function setPeriodo(tipo) {
+  _periodoAtivo = tipo;
+  ['hoje','semana','mes','personalizado','todos'].forEach(t => {
+    const el = document.getElementById('periodo-'+t);
+    if (el) el.classList.toggle('filtro-ativo', t === (tipo||'todos'));
+  });
+  const custom = document.getElementById('periodo-custom-wrap');
+  if (tipo === 'personalizado') {
+    custom.style.display = 'flex';
+  } else {
+    custom.style.display = 'none';
+    if (_resultadosAtuais.length > 0) aplicarFiltroPeriodo();
+  }
+}
+
+function filtrarPorPeriodo(lista) {
+  if (!_periodoAtivo || _periodoAtivo === '') return lista;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  return lista.filter(a => {
+    const dataStr = (a['Data']||'').trim();
+    if (!dataStr || dataStr === '—') return true;
+    const partes = dataStr.split('/');
+    if (partes.length !== 3) return true;
+    const dataItem = new Date(parseInt(partes[2]), parseInt(partes[1])-1, parseInt(partes[0]));
+    dataItem.setHours(0,0,0,0);
+    if (_periodoAtivo === 'hoje')   return dataItem.getTime() === hoje.getTime();
+    if (_periodoAtivo === 'semana') { const ini = new Date(hoje); ini.setDate(hoje.getDate()-hoje.getDay()); return dataItem >= ini && dataItem <= hoje; }
+    if (_periodoAtivo === 'mes')    return dataItem.getMonth()===hoje.getMonth() && dataItem.getFullYear()===hoje.getFullYear();
+    if (_periodoAtivo === 'personalizado') {
+      const de = document.getElementById('periodo-de')?.value;
+      const ate = document.getElementById('periodo-ate')?.value;
+      if (de)  { const d=new Date(de);  d.setHours(0,0,0,0);       if (dataItem < d) return false; }
+      if (ate) { const d=new Date(ate); d.setHours(23,59,59,999);   if (dataItem > d) return false; }
+      return true;
+    }
+    return true;
+  });
+}
+
+function aplicarFiltroPeriodo() {
+  const filtrado = filtrarPorPeriodo(_resultadosAtuais);
+  const status = document.getElementById('consulta-status');
+  status.style.display = 'block';
+  status.style.color = 'var(--green)';
+  const label = _periodoAtivo === 'hoje' ? 'hoje' : _periodoAtivo === 'semana' ? 'esta semana' : _periodoAtivo === 'mes' ? 'este mês' : _periodoAtivo === 'personalizado' ? 'período selecionado' : '';
+  status.textContent = `✅ ${filtrado.length} resultado(s)${label ? ' em ' + label : ''}.`;
+  window._resultadosFiltrados = filtrado;
+  const bkp = _resultadosAtuais;
+  _resultadosAtuais = filtrado;
+  renderPagina(1);
+  _resultadosAtuais = bkp;
+}
+
+// ── DUPLICAR ANÁLISE ──
+function duplicarAnalise(idx) {
+  const fonte = (window._resultadosFiltrados && window._resultadosFiltrados !== _resultadosAtuais)
+    ? window._resultadosFiltrados : _resultadosAtuais;
+  const a = fonte[idx];
+  if (!a) return;
+
+  switchNav('analise');
+
+  const tipo = (a['Tipo de Cliente']||'').toLowerCase();
+  const tipoEl = document.getElementById('tipo_cliente');
+  if (tipoEl) { tipoEl.value = tipo === 'antigo' ? 'antigo' : 'novo'; switchTipo(); }
+
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el || !val || val === 'N/A' || val === 'Não informado' || val === '—') return;
+    el.value = val;
+  };
+  set('cliente',         a['Cliente (Razão Social)']);
+  set('cnpj',            a['CNPJ']);
+  set('nome_cliente',    a['Responsável']);
+  set('cpf_cliente',     a['CPF do Cliente']);
+  set('representante',   a['Representante']);
+  set('valor_solicitado',a['Valor Solicitado (R$)']);
+  set('spc_serasa',      a['SPC / Serasa']);
+  set('valor_pendencia', a['Valor da Pendência (R$)']);
+  set('protesto',        a['Protesto / Restrição Grave?']);
+  set('obs',             a['Observações Comerciais']);
+  set('tipo_analise',    a['Tipo de Análise']);
+
+  if (tipo !== 'antigo') {
+    showPanel('novo');
+    const taMap = {'Acima de 12 meses':'acima_12','6 a 12 meses':'6_a_12','Até 5 meses':'ate_5'};
+    set('tempo_abertura', taMap[a['Tempo de Abertura']]||'');
+    set('nf1',           a['NF 1 (R$)']);
+    set('nf2',           a['NF 2 (R$)']);
+    set('nf3',           a['NF 3 (R$)']);
+    set('situacao_loja', a['Situação da Loja']);
+  } else {
+    showPanel('antigo');
+    set('limite_aprovado',  a['Limite Aprovado Anteriormente (R$)']);
+    set('saldo_aberto',     a['Saldo em Aberto (R$)']);
+    set('qtd_parcelas',     a['Qtd Parcelas Nova Compra']);
+    set('pagas_dia',        a['Parcelas Pagas em Dia']);
+    set('pagas_atraso',     a['Parcelas Pagas em Atraso']);
+    set('atraso_atual',     a['Houve Atraso Atual?']);
+    set('media_dia',        a['Média Parcelas em Dia (R$)']);
+    set('maior_dia',        a['Maior Parcela em Dia (R$)']);
+    set('media_atraso_val', a['Média Parcelas Atrasadas (R$)']);
+    set('menor_atraso',     a['Menor Parcela que Atrasa (R$)']);
+    set('historico_geral',  a['Histórico Geral de Pagamento']);
+  }
+
+  document.getElementById('result-section').style.display = 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  const toast = document.createElement('div');
+  toast.textContent = `✅ Dados de "${a['Cliente (Razão Social)']||'cliente'}" copiados! Ajuste o necessário e clique em Analisar.`;
+  toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0e2a18;border:1px solid #1e5c32;color:#4ade80;font-family:var(--mono);font-size:12px;padding:12px 20px;border-radius:10px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.5);max-width:90vw;text-align:center;';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+function gerarDocumento(idx) {
+  const a = _resultadosAtuais[idx];
+  if (!a) return;
+
+  const fmtV = (v) => {
+    if (!v || v === 'N/A' || v === '—') return '—';
+    const n = parseFloat(v);
+    if (isNaN(n)) return v;
+    return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+  };
+
+  const cliente    = a['Cliente (Razão Social)'] || '—';
+  const cnpj       = a['CNPJ'] || '—';
+  const responsavel= a['Responsável'] || '—';
+  const cpf        = a['CPF do Cliente'] || '—';
+  const repr       = a['Representante'] || '—';
+  const analista   = a['Analista Responsável'] || '—';
+  const data       = a['Data'] || '—';
+  const tipoCliente= a['Tipo de Cliente'] || '—';
+  const tipoAnalise= a['Tipo de Análise'] || '—';
+  const decisao    = a['Decisão'] || '—';
+  const condicao   = a['Condição'] || '—';
+  const valorSol   = fmtV(a['Valor Solicitado (R$)']);
+  const valorRec   = fmtV(a['Valor Recomendado (R$)']);
+  const score      = a['Pontuação de Risco'] || '—';
+  const classif    = a['Classificação de Risco'] || '—';
+  const spc        = a['SPC / Serasa'] || '—';
+  const protesto   = a['Protesto / Restrição Grave?'] || '—';
+  const obs        = a['Observações Comerciais'] || '';
+
+  const isAntigo = tipoCliente === 'Antigo';
+  const limAprov = fmtV(a['Limite Aprovado Anteriormente (R$)']);
+  const saldo    = fmtV(a['Saldo em Aberto (R$)']);
+  const limDisp  = fmtV(a['Limite Disponível (R$)']);
+  const pgDia    = a['Parcelas Pagas em Dia'] || '—';
+  const pgAtraso = a['Parcelas Pagas em Atraso'] || '—';
+  const atrasoAtual = a['Houve Atraso Atual?'] || '—';
+  const hist     = a['Histórico Geral de Pagamento'] || '—';
+
+  const somaNfs  = fmtV(a['Soma das NFs (R$)']);
+  const mediaNfs = fmtV(a['Média das NFs (R$)']);
+  const tempAb   = a['Tempo de Abertura'] || '—';
+  const sitLoja  = a['Situação da Loja'] || '—';
+
+  const decColorMap = {
+    'liberado': '#16a34a', 'parcial': '#d97706', 'recusado': '#dc2626', 'superior': '#2563eb'
+  };
+  const decKey = decisao.toLowerCase().includes('antecipação') || decisao.toLowerCase().includes('parcial') ? 'parcial'
+    : decisao.toLowerCase().includes('liberado') ? 'liberado'
+    : decisao.toLowerCase().includes('recusado') || decisao.toLowerCase().includes('vista') ? 'recusado'
+    : 'superior';
+  const decColor = decColorMap[decKey];
+
+  // Dados financeiros — montados por concatenação para evitar backticks aninhados
+  var dadosFinHtml = '';
+  if (isAntigo) {
+    dadosFinHtml =
+      '<div class="field"><div class="field-label">Limite Aprovado Anteriormente</div><div class="field-value">' + limAprov + '</div></div>' +
+      '<div class="field"><div class="field-label">Saldo em Aberto</div><div class="field-value">' + saldo + '</div></div>' +
+      '<div class="field"><div class="field-label">Limite Disponível</div><div class="field-value">' + limDisp + '</div></div>' +
+      '<div class="field"><div class="field-label">Histórico Geral de Pagamento</div><div class="field-value">' + hist + '</div></div>' +
+      '<div class="field"><div class="field-label">Parcelas Pagas em Dia</div><div class="field-value">' + pgDia + '</div></div>' +
+      '<div class="field"><div class="field-label">Parcelas Pagas em Atraso</div><div class="field-value">' + pgAtraso + '</div></div>' +
+      '<div class="field"><div class="field-label">Houve Atraso Atual?</div><div class="field-value" style="color:' + (atrasoAtual==='Sim'?'#dc2626':'#16a34a') + '">' + atrasoAtual + '</div></div>';
+  } else {
+    dadosFinHtml =
+      '<div class="field"><div class="field-label">Tempo de Abertura</div><div class="field-value">' + tempAb + '</div></div>' +
+      '<div class="field"><div class="field-label">Soma das NFs</div><div class="field-value">' + somaNfs + '</div></div>' +
+      '<div class="field"><div class="field-label">Média das NFs</div><div class="field-value">' + mediaNfs + '</div></div>' +
+      '<div class="field"><div class="field-label">Situação da Loja</div><div class="field-value">' + sitLoja + '</div></div>';
+  }
+
+  var obsHtml = obs ? '<div class="obs-box" style="margin-top:10px;"><div class="field-label">Observações Comerciais</div><div class="field-value" style="font-weight:400;color:#78350f;line-height:1.6;">' + obs + '</div></div>' : '';
+
+  var docsParaDoc = [];
+  if (typeof docStore !== 'undefined') {
+    ['nf','fachada','outros'].forEach(function(tab) {
+      var cat = tab === 'nf' ? 'Notas Fiscais' : tab === 'fachada' ? 'Fachada' : 'Outros';
+      (docStore[tab] || []).forEach(function(d) { docsParaDoc.push({ name: d.name, type: d.type, data: d.data, categoria: cat }); });
+    });
+  }
+
+  var agora = new Date();
+  var dataGer = agora.toLocaleDateString('pt-BR');
+  var horaGer = agora.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+
+  var html = '<!DOCTYPE html>' +
+    '<html lang="pt-BR"><head><meta charset="UTF-8">' +
+    '<title>Documento de Credito - ' + cliente + '</title>';
+
+  var css = '<style>' +
+    '@import url(https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap);' +
+    '*{box-sizing:border-box;margin:0;padding:0}' +
+    'body{font-family:IBM Plex Sans,sans-serif;background:#fff;color:#111;font-size:13px}' +
+    '.page{max-width:800px;margin:0 auto;padding:40px 48px}' +
+    '@media print{.page{padding:20px 32px}.no-print{display:none!important}}' +
+    '.header{display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:2px solid #1d4ed8;margin-bottom:28px}' +
+    '.brand{display:flex;align-items:center;gap:12px}' +
+    '.brand-icon{width:44px;height:44px;background:linear-gradient(135deg,#3b7eff,#2460d4);border-radius:10px;display:flex;align-items:center;justify-content:center}' +
+    '.brand-icon svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:2}' +
+    '.brand-name{font-size:16px;font-weight:700;color:#111}' +
+    '.brand-sub{font-size:10px;color:#6b7280;font-family:IBM Plex Mono,monospace;margin-top:1px}' +
+    '.doc-info{text-align:right}' +
+    '.doc-titulo{font-size:13px;font-weight:700;color:#1d4ed8;text-transform:uppercase}' +
+    '.doc-data{font-size:11px;color:#6b7280;font-family:IBM Plex Mono,monospace;margin-top:3px}' +
+    '.decisao-banner{border-radius:8px;padding:16px 20px;margin-bottom:24px;border-left:4px solid ' + decColor + ';background:' + decColor + '22;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}' +
+    '.decisao-label{font-size:10px;color:#6b7280;font-family:IBM Plex Mono,monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}' +
+    '.decisao-valor{font-size:20px;font-weight:700;color:' + decColor + '}' +
+    '.decisao-right{text-align:right}' +
+    '.vr-label{font-size:10px;color:#6b7280;font-family:IBM Plex Mono,monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}' +
+    '.vr-valor{font-size:20px;font-weight:700;color:#111}' +
+    '.section{margin-bottom:22px}' +
+    '.section-title{font-size:9px;font-family:IBM Plex Mono,monospace;color:#1d4ed8;letter-spacing:2px;text-transform:uppercase;font-weight:700;padding-bottom:7px;border-bottom:1px solid #e5e7eb;margin-bottom:12px}' +
+    '.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}' +
+    '.field{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 12px}' +
+    '.field-label{font-size:9px;font-family:IBM Plex Mono,monospace;color:#9ca3af;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px}' +
+    '.field-value{font-size:13px;font-weight:600;color:#111}' +
+    '.condicao-box{background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:14px 16px}' +
+    '.condicao-box .field-label{color:#0369a1}' +
+    '.condicao-box .field-value{font-size:13px;font-weight:400;color:#0c4a6e;line-height:1.6}' +
+    '.obs-box{background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:14px 16px}' +
+    '.assinatura{margin-top:40px;padding-top:20px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:flex-end}' +
+    '.ass-block{text-align:center}' +
+    '.ass-line{width:200px;border-bottom:1px solid #374151;margin-bottom:6px;height:32px}' +
+    '.ass-label{font-size:10px;color:#6b7280;font-family:IBM Plex Mono,monospace}' +
+    '.footer{margin-top:28px;padding-top:14px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;font-family:IBM Plex Mono,monospace}' +
+    '.btn-print{display:block;margin:0 auto 24px;padding:10px 28px;background:#1d4ed8;color:#fff;border:none;border-radius:7px;font-family:IBM Plex Sans,sans-serif;font-size:13px;font-weight:600;cursor:pointer}' +
+    '</style></head><body>';
+
+  var corpo =
+    '<div class="page">' +
+    '<button class="btn-print no-print" onclick="window.print()">Imprimir / Salvar como PDF</button>' +
+    '<div class="header">' +
+      '<div class="brand">' +
+        '<div class="brand-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>' +
+        '<div><div class="brand-name">Alvorada Motos</div><div class="brand-sub">ANALISE DE CREDITO - DOCUMENTO OFICIAL</div></div>' +
+      '</div>' +
+      '<div class="doc-info"><div class="doc-titulo">Liberacao de Credito</div><div class="doc-data">Data: ' + data + ' - Analista: ' + analista + '</div></div>' +
+    '</div>' +
+    '<div class="decisao-banner">' +
+      '<div><div class="decisao-label">Decisao Recomendada</div><div class="decisao-valor">' + decisao + '</div></div>' +
+      '<div class="decisao-right"><div class="vr-label">Valor Recomendado</div><div class="vr-valor">' + valorRec + '</div></div>' +
+    '</div>' +
+    '<div class="section"><div class="section-title">Dados do Cliente</div><div class="grid2">' +
+      '<div class="field"><div class="field-label">Cliente (Razao Social)</div><div class="field-value">' + cliente + '</div></div>' +
+      '<div class="field"><div class="field-label">CNPJ / CPF</div><div class="field-value">' + cnpj + '</div></div>' +
+      '<div class="field"><div class="field-label">Responsavel</div><div class="field-value">' + responsavel + '</div></div>' +
+      '<div class="field"><div class="field-label">CPF do Responsavel</div><div class="field-value">' + cpf + '</div></div>' +
+      '<div class="field"><div class="field-label">Representante</div><div class="field-value">' + repr + '</div></div>' +
+      '<div class="field"><div class="field-label">Tipo de Cliente / Analise</div><div class="field-value">' + tipoCliente + ' - ' + tipoAnalise + '</div></div>' +
+      '<div class="field"><div class="field-label">Valor Solicitado</div><div class="field-value" style="color:#d97706">' + valorSol + '</div></div>' +
+      '<div class="field"><div class="field-label">SPC / Serasa</div><div class="field-value">' + spc + '</div></div>' +
+    '</div></div>' +
+    '<div class="section"><div class="section-title">' + (isAntigo ? 'Dados Financeiros - Cliente Antigo' : 'Dados Financeiros - Cliente Novo') + '</div>' +
+    '<div class="grid2">' + dadosFinHtml + '</div></div>' +
+    '<div class="section"><div class="section-title">Resultado da Analise</div>' +
+      '<div class="grid2" style="margin-bottom:12px">' +
+        '<div class="field"><div class="field-label">Score de Risco</div><div class="field-value">' + score + '/100</div></div>' +
+        '<div class="field"><div class="field-label">Classificacao de Risco</div><div class="field-value">' + classif + '</div></div>' +
+      '</div>' +
+      '<div class="condicao-box"><div class="field-label">Justificativa / Condicao</div><div class="field-value">' + condicao + '</div></div>' +
+      obsHtml +
+    '</div>' +
+    '<div class="assinatura">' +
+      '<div class="ass-block"><div class="ass-line"></div><div class="ass-label">Analista Responsavel - ' + analista + '</div></div>' +
+      '<div class="ass-block"><div class="ass-line"></div><div class="ass-label">Aprovacao / Gestao</div></div>' +
+    '</div>' +
+    '<div id="secao-docs" style="margin-top:28px;padding-top:20px;border-top:1px solid #e5e7eb;display:none">' +
+      '<div class="section-title">Documentos Anexados</div>' +
+      '<div id="area-docs"></div>' +
+    '</div>' +
+    '<div class="no-print" style="margin-top:24px;padding:20px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px">' +
+      '<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:12px">Adicionar Documentos ao Relatorio</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">' +
+        '<label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:#6b7280">Notas Fiscais<input type="file" multiple accept="image/*,.pdf,.xml" onchange="adicionarDocsDoc(event,\'Notas Fiscais\')" style="font-size:11px;padding:4px;border:1px solid #d1d5db;border-radius:4px;background:#fff"></label>' +
+        '<label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:#6b7280">Foto da Fachada<input type="file" multiple accept="image/*" onchange="adicionarDocsDoc(event,\'Fachada\')" style="font-size:11px;padding:4px;border:1px solid #d1d5db;border-radius:4px;background:#fff"></label>' +
+        '<label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:#6b7280">Identidade / RG / CNH<input type="file" multiple accept="image/*,.pdf" onchange="adicionarDocsDoc(event,\'Identidade\')" style="font-size:11px;padding:4px;border:1px solid #d1d5db;border-radius:4px;background:#fff"></label>' +
+        '<label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:#6b7280">Outros Documentos<input type="file" multiple onchange="adicionarDocsDoc(event,\'Outros\')" style="font-size:11px;padding:4px;border:1px solid #d1d5db;border-radius:4px;background:#fff"></label>' +
+      '</div>' +
+      '<div style="font-size:10px;color:#9ca3af">Os documentos selecionados aparecem no relatorio antes de imprimir.</div>' +
+    '</div>' +
+    '<div class="footer">' +
+      '<span>Alvorada Motos - Setor de Pecas - Analise de Credito</span>' +
+      '<span>Gerado em ' + dataGer + ' as ' + horaGer + '</span>' +
+    '</div></div>';
+
+  var scriptCode =
+    'var docsIniciais=__DOCS_INICIAIS__;' +
+    'var docsCategorias={};' +
+    'function inicializarDocs(){if(!docsIniciais||!docsIniciais.length)return;docsIniciais.forEach(function(d){if(!docsCategorias[d.categoria])docsCategorias[d.categoria]=[];docsCategorias[d.categoria].push(d);});renderizarDocs();}' +
+    'function adicionarDocsDoc(e,cat){Array.from(e.target.files).forEach(function(f){var r=new FileReader();r.onload=function(ev){if(!docsCategorias[cat])docsCategorias[cat]=[];docsCategorias[cat].push({name:f.name,type:f.type,data:ev.target.result});renderizarDocs();};r.readAsDataURL(f);});}' +
+    'function renderizarDocs(){var area=document.getElementById("area-docs");var secao=document.getElementById("secao-docs");var cats=Object.keys(docsCategorias).filter(function(c){return docsCategorias[c].length>0;});if(!cats.length){secao.style.display="none";return;}secao.style.display="block";var h="";cats.forEach(function(cat){var docs=docsCategorias[cat];var imgs=docs.filter(function(d){return d.type&&d.type.startsWith("image/");});var arqs=docs.filter(function(d){return !d.type||!d.type.startsWith("image/");});h+="<div style=margin-bottom:20px><div style=font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:8px>"+cat+"</div>";if(imgs.length){h+="<div style=display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px>";imgs.forEach(function(img){h+="<div style=text-align:center><img src="+img.data+" style=max-width:180px;max-height:140px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;display:block><div style=font-size:9px;color:#9ca3af;margin-top:3px>"+img.name+"</div></div>";});h+="</div>";}arqs.forEach(function(a){var ext=a.name.split(".").pop().toUpperCase();h+="<div style=display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f3f4f6;border-radius:5px;margin-bottom:4px;font-size:11px><span style=background:#1d4ed8;color:#fff;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700>"+ext+"</span> "+a.name+"</div>";});h+="</div>";});area.innerHTML=h;}' +
+    'inicializarDocs();';
+
+  html = html + css + corpo + '</body></html>';
+  html = html.replace('__DOCS_INICIAIS__', JSON.stringify(docsParaDoc));
+  html = html.replace('__SCRIPT_CODE__', scriptCode);
+
+  var htmlFinal = html.replace('__DOCS_INICIAIS__', JSON.stringify(docsParaDoc));
+
+  var win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  var s = win.document.createElement('script');
+  s.textContent = scriptCode;
+  win.document.body.appendChild(s);
+}
+
+
+function toggleConsultaCard(i) {
+  const body = document.getElementById('body-' + i);
+  const chevron = document.getElementById('chevron-' + i);
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+function limparRegistros() {
+  if (registros.length===0) return;
+  if (confirm(`Apagar ${registros.length} registro(s) locais da sessão?`)) { registros=[]; atualizarContador(); }
+}
+
+function atualizarContador() {
+  const el=document.getElementById('count-label');if(!el)return;
+  el.textContent=registros.length===0?'Nenhum registro local nesta sessão.':`${registros.length} análise(s) nesta sessão. Clique em "Salvar na Planilha" para registrar na aba analises.`;
+}
+
+function copiar(id) {
+  const text=document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    document.querySelectorAll('.btn-copy').forEach(b=>{
+      if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes(id)){
+        b.textContent='✅ Copiado!';setTimeout(()=>b.innerHTML='📋 Copiar',1500);
+      }
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// VALIDAÇÃO DE CNPJ
+// ══════════════════════════════════════════════════════════
+function formatCNPJouCPF(el){
+  const digits = el.value.replace(/\D/g,'');
+  const hint   = document.getElementById('cnpj-hint');
+  if (digits.length <= 11) {
+    // Formatar como CPF
+    el.maxLength = 14;
+    let v = digits.substring(0,11);
+    if(v.length>9)      v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2}).*/,'$1.$2.$3-$4');
+    else if(v.length>6) v = v.replace(/^(\d{3})(\d{3})(\d{0,3}).*/,'$1.$2.$3');
+    else if(v.length>3) v = v.replace(/^(\d{3})(\d{0,3}).*/,'$1.$2');
+    el.value = v;
+    if (digits.length === 11) {
+      if (validarCPF(digits)) {
+        el.classList.add('campo-valido'); el.classList.remove('campo-invalido');
+        hint.textContent = '✔ CPF válido'; hint.className = 'validacao-hint ok';
+      } else {
+        el.classList.add('campo-invalido'); el.classList.remove('campo-valido');
+        hint.textContent = '✖ CPF inválido'; hint.className = 'validacao-hint erro';
+      }
+    } else {
+      el.classList.remove('campo-valido','campo-invalido'); hint.className = 'validacao-hint';
+    }
+  } else {
+    // Formatar como CNPJ
+    el.maxLength = 18;
+    let v = digits.substring(0,14);
+    if(v.length>12)     v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/,'$1.$2.$3/$4-$5');
+    else if(v.length>8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4}).*/,'$1.$2.$3/$4');
+    else if(v.length>5) v = v.replace(/^(\d{2})(\d{3})(\d{0,3}).*/,'$1.$2.$3');
+    else if(v.length>2) v = v.replace(/^(\d{2})(\d{0,3}).*/,'$1.$2');
+    el.value = v;
+    if (digits.length === 14) {
+      if (validarCNPJ(digits)) {
+        el.classList.add('campo-valido'); el.classList.remove('campo-invalido');
+        hint.textContent = '✔ CNPJ válido'; hint.className = 'validacao-hint ok';
+      } else {
+        el.classList.add('campo-invalido'); el.classList.remove('campo-valido');
+        hint.textContent = '✖ CNPJ inválido'; hint.className = 'validacao-hint erro';
+      }
+    } else {
+      el.classList.remove('campo-valido','campo-invalido'); hint.className = 'validacao-hint';
+    }
+  }
+}
+
+function formatCNPJ(el){
+  let v=el.value.replace(/\D/g,'').substring(0,14);
+  if(v.length>12) v=v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/,'$1.$2.$3/$4-$5');
+  else if(v.length>8) v=v.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4}).*/,'$1.$2.$3/$4');
+  else if(v.length>5) v=v.replace(/^(\d{2})(\d{3})(\d{0,3}).*/,'$1.$2.$3');
+  else if(v.length>2) v=v.replace(/^(\d{2})(\d{0,3}).*/,'$1.$2');
+  el.value=v;
+  if(v.replace(/\D/g,'').length===14) validarCNPJInput(el);
+  else { el.classList.remove('campo-valido','campo-invalido'); document.getElementById('cnpj-hint').className='validacao-hint'; }
+}
+function validarCNPJ(c){
+  c=c.replace(/\D/g,'');
+  if(c.length!==14||/^(\d)\1+$/.test(c)) return false;
+  let s=0,r;
+  for(let i=0;i<12;i++) s+=parseInt(c[i])*(i<4?5-i:13-i);
+  r=s%11<2?0:11-(s%11);
+  if(parseInt(c[12])!==r) return false;
+  s=0;
+  for(let i=0;i<13;i++) s+=parseInt(c[i])*(i<5?6-i:14-i);
+  r=s%11<2?0:11-(s%11);
+  return parseInt(c[13])===r;
+}
+function validarCNPJInput(el){
+  const hint=document.getElementById('cnpj-hint');
+  const raw=el.value.replace(/\D/g,'');
+  if(raw.length<14){el.classList.remove('campo-valido','campo-invalido');hint.className='validacao-hint';return;}
+  if(validarCNPJ(raw)){el.classList.add('campo-valido');el.classList.remove('campo-invalido');hint.textContent='✔ CNPJ válido';hint.className='validacao-hint ok';}
+  else{el.classList.add('campo-invalido');el.classList.remove('campo-valido');hint.textContent='✖ CNPJ inválido';hint.className='validacao-hint erro';}
+}
+
+// ══════════════════════════════════════════════════════════
+// VALIDAÇÃO DE CPF
+// ══════════════════════════════════════════════════════════
+function validarCPF(c){
+  c=c.replace(/\D/g,'');
+  if(c.length!==11||/^(\d)\1+$/.test(c)) return false;
+  let s=0,r;
+  for(let i=0;i<9;i++) s+=parseInt(c[i])*(10-i);
+  r=s%11<2?0:11-(s%11);
+  if(parseInt(c[9])!==r) return false;
+  s=0;
+  for(let i=0;i<10;i++) s+=parseInt(c[i])*(11-i);
+  r=s%11<2?0:11-(s%11);
+  return parseInt(c[10])===r;
+}
+function validarCPFInput(el){
+  const hint=document.getElementById('cpf-hint');
+  const raw=el.value.replace(/\D/g,'');
+  if(raw.length<11){el.classList.remove('campo-valido','campo-invalido');hint.className='validacao-hint';return;}
+  if(validarCPF(raw)){el.classList.add('campo-valido');el.classList.remove('campo-invalido');hint.textContent='✔ CPF válido';hint.className='validacao-hint ok';}
+  else{el.classList.add('campo-invalido');el.classList.remove('campo-valido');hint.textContent='✖ CPF inválido';hint.className='validacao-hint erro';}
+}
+
+// ══════════════════════════════════════════════════════════
+// BARRA DE PROGRESSO
+// ══════════════════════════════════════════════════════════
+(function iniciarProgresso(){
+  const CAMPOS_OBRIGATORIOS = ['tipo_cliente','cliente','valor_solicitado','spc_serasa','protesto'];
+  const CAMPOS_NOVO = ['tempo_abertura','situacao_loja'];
+  const CAMPOS_ANTIGO = ['limite_aprovado','saldo_aberto','historico_geral'];
+  function atualizarProgresso(){
+    const painel = document.getElementById('painel-analise');
+    if(!painel || painel.style.display==='none') return;
+    const tipo = document.getElementById('tipo_cliente')?.value||'';
+    const extras = tipo==='novo'?CAMPOS_NOVO:tipo==='antigo'?CAMPOS_ANTIGO:[];
+    const todos = [...CAMPOS_OBRIGATORIOS, ...extras];
+    let preenchidos=0;
+    todos.forEach(id=>{
+      const el=document.getElementById(id);
+      if(!el) return;
+      if(el.tagName==='SELECT'&&el.value&&el.value!=='') preenchidos++;
+      else if(el.tagName!=='SELECT'&&el.value&&el.value.trim()!='') preenchidos++;
+    });
+    const pct=Math.round((preenchidos/todos.length)*100);
+    const fill=document.getElementById('progresso-bar-fill');
+    const label=document.getElementById('progresso-label');
+    const hint=document.getElementById('progresso-hint');
+    const wrap=document.getElementById('progresso-wrap');
+    if(fill){ fill.style.width=pct+'%'; fill.style.background=pct<40?'var(--accent)':pct<80?'var(--yellow)':'var(--green)'; }
+    if(label) label.textContent=`${preenchidos} / ${todos.length} campos`;
+    if(hint) hint.textContent=pct<100?`Faltam ${todos.length-preenchidos} campo(s) obrigatório(s)`:'✅ Todos os campos obrigatórios preenchidos';
+    if(wrap) wrap.style.display='block';
+  }
+  document.addEventListener('input', atualizarProgresso);
+  document.addEventListener('change', atualizarProgresso);
+  // Também atualiza ao trocar painel/nav
+  const origSwitch = window.switchNav;
+  window.switchNav = function(aba){
+    origSwitch(aba);
+    setTimeout(()=>{ const w=document.getElementById('progresso-wrap'); if(w) w.style.display=aba==='analise'?'block':'none'; atualizarProgresso(); }, 50);
+  };
+})();
+
+// ══════════════════════════════════════════════════════════
+// DESTAQUE DE CAMPOS DE RISCO
+// ══════════════════════════════════════════════════════════
+function marcarRisco(id, cls, labelId, msg){
+  const el=document.getElementById(id);
+  if(el){ el.classList.add(cls); }
+  if(labelId){ const l=document.getElementById(labelId); if(l){l.textContent=msg;l.className='campo-risco-label visivel';if(cls==='campo-risco-critico')l.style.color='#d94f3d';else l.style.color='#fb923c';} }
+}
+function limparDestaquesRisco(){
+  document.querySelectorAll('.campo-risco-alto,.campo-risco-critico').forEach(el=>el.classList.remove('campo-risco-alto','campo-risco-critico'));
+  document.querySelectorAll('.campo-risco-label').forEach(el=>{el.className='campo-risco-label';el.textContent='';});
+}
+
+// ══════════════════════════════════════════════════════════
+// ATALHOS DE TECLADO
+// ══════════════════════════════════════════════════════════
+(function iniciarAtalhos(){
+  const hint=document.createElement('div');
+  hint.className='atalho-hint';
+  hint.innerHTML='<kbd>Ctrl</kbd>+<kbd>Enter</kbd> Analisar &nbsp;·&nbsp; <kbd>Esc</kbd> Limpar formulário';
+  document.body.appendChild(hint);
+  let hintTimer;
+  document.addEventListener('keydown', e=>{
+    // Ctrl+Enter = Analisar
+    if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){
+      e.preventDefault();
+      const painel=document.getElementById('painel-analise');
+      if(painel&&painel.style.display!=='none'){
+        const btn=document.getElementById('btn-analyze');
+        if(btn&&!btn.disabled) btn.click();
+      }
+    }
+    // Esc = Limpar (só se resultado visível, evita acidental)
+    if(e.key==='Escape'){
+      const res=document.getElementById('result-section');
+      if(res&&res.style.display!=='none') limparFormulario();
+    }
+    // ? ou F1 = mostrar hint
+    if(e.key==='?' || e.key==='F1'){
+      e.preventDefault();
+      clearTimeout(hintTimer);
+      hint.classList.add('visivel');
+      hintTimer=setTimeout(()=>hint.classList.remove('visivel'),3000);
+    }
+  });
+  // Mostrar hint por 2s quando entra na aba de análise pela primeira vez
+  let hintMostrado=false;
+  const origEnterApp=window.enterApp;
+  window.enterApp=function(user){
+    origEnterApp(user);
+    // Inicializar grids de documentos
+    ['nf','fachada','outros'].forEach(t => { renderDocGrid(t); updateDocBadge(t); });
+    if(!hintMostrado){
+      hintMostrado=true;
+      setTimeout(()=>{hint.classList.add('visivel');setTimeout(()=>hint.classList.remove('visivel'),3000);},1200);
+    }
+  };
+})();
+</script>
+</body>
+</html>
