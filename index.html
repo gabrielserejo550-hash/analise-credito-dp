@@ -6,6 +6,7 @@
 <title>Análise de Crédito DP</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
     --bg:       #0b0e14;
@@ -1769,71 +1770,87 @@ function gsPost(payload) {
 }
 
 // Upload via form POST oculto (sem limite de tamanho, sem CORS)
-function gsPostFile(payload) {
-  return new Promise((resolve) => {
-    const cbName = 'gs_upload_cb_' + Date.now();
-    const iframeName = 'gs_iframe_' + Date.now();
+// ══════════════════════════════════════════════════════════
+// GOOGLE DRIVE API DIRETA (OAuth 2.0)
+// ══════════════════════════════════════════════════════════
+const DRIVE_CLIENT_ID = '932765469932-mqve3rpe3d0bj1hve44idf056ffuj2g8.apps.googleusercontent.com';
+const DRIVE_API_KEY   = 'AIzaSyC0sJnEzDgZK3G0CcQHgrOLojZv4JUQggc';
+const DRIVE_SCOPE     = 'https://www.googleapis.com/auth/drive.file';
+const PASTA_RAIZ_NOME = 'DP';
 
-    // Criar iframe oculto para receber a resposta
-    const iframe = document.createElement('iframe');
-    iframe.name = iframeName;
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
+let _driveToken = null;
 
-    // Callback que o iframe vai chamar via URL de redirect
-    const timer = setTimeout(() => {
-      cleanup();
-      resolve({ ok: false, erro: 'Timeout no upload do arquivo.' });
-    }, 120000);
-
-    window[cbName] = function(data) {
-      clearTimeout(timer);
-      cleanup();
-      resolve(data);
-    };
-
-    function cleanup() {
-      delete window[cbName];
-      try { iframe.remove(); } catch(e){}
-      try { form.remove(); } catch(e){}
-    }
-
-    // Form POST para o Apps Script
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = GS_URL;
-    form.target = iframeName;
-    form.style.display = 'none';
-
-    // Campo com o payload JSON
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'payload';
-    input.value = JSON.stringify({ ...payload, callback: cbName });
-    form.appendChild(input);
-
-    document.body.appendChild(form);
-
-    // Quando iframe carregar, tentar ler a resposta via URL ou conteúdo
-    iframe.onload = function() {
-      try {
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-        const text = iframeDoc.body ? iframeDoc.body.innerText : '';
-        if (text) {
-          try {
-            const data = JSON.parse(text);
-            clearTimeout(timer);
-            cleanup();
-            resolve(data);
-            return;
-          } catch(e) {}
-        }
-      } catch(e) {}
-      // Se não conseguiu ler (cross-origin), aguarda callback via postMessage
-    };
-
-    form.submit();
+// Obtém token OAuth via popup do Google
+function getDriveToken() {
+  return new Promise((resolve, reject) => {
+    if (_driveToken) { resolve(_driveToken); return; }
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: DRIVE_CLIENT_ID,
+      scope: DRIVE_SCOPE,
+      callback: (resp) => {
+        if (resp.error) { reject(resp.error); return; }
+        _driveToken = resp.access_token;
+        resolve(_driveToken);
+      }
+    });
+    client.requestAccessToken({ prompt: 'consent' });
   });
+}
+
+// Busca ou cria pasta no Drive
+async function getOrCreateFolder(nome, parentId, token) {
+  const q = `name='${nome}' and mimeType='application/vnd.google-apps.folder' and trashed=false` + (parentId ? ` and '${parentId}' in parents` : '');
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,webViewLink)`, {
+    headers: { Authorization: 'Bearer ' + token }
+  });
+  const data = await res.json();
+  if (data.files && data.files.length > 0) return data.files[0];
+  const body = { name: nome, mimeType: 'application/vnd.google-apps.folder' };
+  if (parentId) body.parents = [parentId];
+  const created = await fetch('https://www.googleapis.com/drive/v3/files?fields=id,name,webViewLink', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return await created.json();
+}
+
+// Upload real para o Drive via API
+async function gsPostFile(payload) {
+  try {
+    const token = await getDriveToken();
+
+    // Estrutura: DP > NomePasta > Categoria
+    const pastaRaiz     = await getOrCreateFolder(PASTA_RAIZ_NOME, null, token);
+    const pastaCliente  = await getOrCreateFolder(payload.nomePasta, pastaRaiz.id, token);
+    const pastaCateg    = await getOrCreateFolder(payload.categoria, pastaCliente.id, token);
+
+    // Converter base64 para Blob
+    const byteChars = atob(payload.base64Data);
+    const byteArr   = new Uint8Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
+    const blob = new Blob([byteArr], { type: payload.mimeType });
+
+    // Upload multipart
+    const meta = JSON.stringify({ name: payload.nomeArquivo, parents: [pastaCateg.id] });
+    const form  = new FormData();
+    form.append('metadata', new Blob([meta], { type: 'application/json' }));
+    form.append('file', blob);
+
+    const up = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token },
+      body: form
+    });
+    const upData = await up.json();
+    if (upData.id) {
+      return { ok: true, pastaUrl: pastaCliente.webViewLink };
+    } else {
+      return { ok: false, erro: JSON.stringify(upData) };
+    }
+  } catch(e) {
+    return { ok: false, erro: e.message || String(e) };
+  }
 }
 
 // ══════════════════════════════════════════════════════════
