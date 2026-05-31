@@ -66,10 +66,10 @@
   }
 
   @keyframes gradOscila {
-    0%   { background-position: 0% 50%; }
-    33%  { background-position: 100% 50%; }
-    66%  { background-position: 50% 0%; }
-    100% { background-position: 0% 50%; }
+    0%   { background-color: #1a3aff; }
+    33%  { background-color: #ffffff; }
+    66%  { background-color: #cc0000; }
+    100% { background-color: #1a3aff; }
   }
   .auth-left {
     flex: 1;
@@ -81,8 +81,7 @@
     position: relative;
     overflow: hidden;
     border-right: 1px solid var(--border);
-    background: linear-gradient(135deg, #0a1f5c, #1a4a9e, #ffffff, #cc0000, #8b0000, #0a1f5c);
-    background-size: 500% 500%;
+    background-color: #1a3aff;
     animation: gradOscila 6s linear infinite;
   }
 
