@@ -1727,7 +1727,7 @@
 // ══════════════════════════════════════════════════════════
 // GOOGLE SHEETS CONFIG
 // ══════════════════════════════════════════════════════════
-const GS_URL = 'https://script.google.com/macros/s/AKfycbwlKINmq_EfxL9SGo7BRjOHkGgf4m2-JpilCfFBty_nPKCV-1OTtddFRzAqVoCYi2XL/exec';
+const GS_URL = 'https://script.google.com/macros/s/AKfycbxRqE4xkXkPAmTrTWs2DEbAcOum-iovSSBs2uPBnay0qEbv4ngU0t5QKnp9hZcy68U/exec';
 
 // Variáveis globais declaradas no topo para evitar erros de referência
 let registros = [];
@@ -1766,6 +1766,22 @@ function gsPost(payload) {
     };
     document.body.appendChild(script);
   });
+}
+
+// Para upload de arquivos — usa fetch POST para evitar limite de URL
+async function gsPostFile(payload) {
+  try {
+    const resp = await fetch(GS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      redirect: 'follow'
+    });
+    const text = await resp.text();
+    try { return JSON.parse(text); } catch { return { ok: false, erro: 'Resposta inválida.' }; }
+  } catch(e) {
+    return { ok: false, erro: 'Erro de conexão: ' + e.message };
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -2788,7 +2804,7 @@ async function salvarTudo() {
 
       try {
         const base64Data = arq.data.split(',')[1];
-        const r = await gsPost({
+        const r = await gsPostFile({
           action: 'upload_drive',
           nomePasta,
           nomeArquivo: arq.name,
