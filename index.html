@@ -1650,10 +1650,12 @@
         </div>
       </div>
 
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;align-items:center">
         <button class="btn-salvar-planilha" id="btn-salvar-planilha" onclick="salvarTudo()">💾 Salvar Planilha + Arquivos</button>
         <button class="btn-xlsx" onclick="baixarXLSX()">⬇️ Baixar Excel (.xlsx)</button>
         <button class="btn-copy" onclick="limparRegistros()">🗑️ Limpar registros locais</button>
+        <button id="btn-conectar-drive" onclick="conectarDrive()" style="background:transparent;border:1px solid #4285f4;color:#4285f4;border-radius:6px;padding:8px 14px;font-size:12px;font-family:var(--mono);cursor:pointer">🔗 Conectar Google Drive</button>
+        <span id="drive-status-label" style="font-size:11px;font-family:var(--mono);color:var(--muted)"></span>
       </div>
 
       <div style="margin-top:8px;font-size:11px;color:var(--muted);font-family:var(--mono)" id="count-label"></div>
@@ -1780,20 +1782,32 @@ const PASTA_RAIZ_NOME = 'DP';
 
 let _driveToken = null;
 
-// Obtém token OAuth via popup do Google
+// Botão: conecta Drive manualmente (popup funciona aqui pois é click direto)
+function conectarDrive() {
+  const lbl = document.getElementById('drive-status-label');
+  const btn = document.getElementById('btn-conectar-drive');
+  if (lbl) lbl.textContent = 'Aguardando autorização...';
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: DRIVE_CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    callback: (resp) => {
+      if (resp.error) {
+        if (lbl) lbl.textContent = '❌ Erro: ' + resp.error;
+        return;
+      }
+      _driveToken = resp.access_token;
+      if (lbl) lbl.textContent = '✅ Drive conectado!';
+      if (btn) { btn.textContent = '✅ Drive conectado'; btn.style.borderColor = '#00c48c'; btn.style.color = '#00c48c'; btn.disabled = true; }
+    }
+  });
+  client.requestAccessToken({ prompt: 'consent' });
+}
+
+// Obtém token já salvo (precisa conectar antes)
 function getDriveToken() {
   return new Promise((resolve, reject) => {
     if (_driveToken) { resolve(_driveToken); return; }
-    const client = google.accounts.oauth2.initTokenClient({
-      client_id: DRIVE_CLIENT_ID,
-      scope: DRIVE_SCOPE,
-      callback: (resp) => {
-        if (resp.error) { reject(resp.error); return; }
-        _driveToken = resp.access_token;
-        resolve(_driveToken);
-      }
-    });
-    client.requestAccessToken({ prompt: 'consent' });
+    reject('Drive não conectado. Clique em "🔗 Conectar Google Drive" antes de salvar arquivos.');
   });
 }
 
@@ -2893,6 +2907,11 @@ async function salvarTudo() {
       } catch(e) {
         totalErros++;
         driveOk = false;
+        const msg = e && e.message ? e.message : String(e);
+        if (msg.includes('Drive não conectado')) {
+          showGsStatus('error', '⚠️ Clique em "🔗 Conectar Google Drive" antes de salvar arquivos.');
+          break;
+        }
       }
 
       const pct = 55 + Math.round(((i + 1) / total) * 43);
