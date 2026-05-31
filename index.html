@@ -78,15 +78,12 @@
     background-color: #0a1a6b;
     transition: background-color 1.5s linear;
   }
-
-  /* Canvas 3D substitui o grid CSS */
   #grid3d-canvas {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     z-index: 0;
-    opacity: 0.55;
   }
 
   .auth-left-brand {
@@ -2254,46 +2251,14 @@ function docPreview(id, tab) {
     win.document.write(`<!DOCTYPE html><html><head><title>${doc.name}</title>
       <style>body{margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}
       img{max-width:100%;max-height:100vh;object-fit:contain}</style></head>
-      <body><img src="${doc.data}" alt="${doc.name}"><script>
-// Animação: azul escuro → azul → branco → vermelho → sempre em frente
-(function() {
-  var cores = ["#0a1a6b","#1a3aff","#ffffff","#cc0000"];
-  var idx = 0;
-  function proxCor() {
-    idx = (idx + 1) % cores.length;
-    var el = document.querySelector(".auth-left");
-    if (el) el.style.backgroundColor = cores[idx];
-  }
-  document.addEventListener("DOMContentLoaded", function() {
-    var el = document.querySelector(".auth-left");
-    if (el) { el.style.backgroundColor = cores[0]; setInterval(proxCor, 1600); }
-  });
-})();
-</script>
-</body></html>`);
+      <body><img src="${doc.data}" alt="${doc.name}"></body></html>`);
   } else {
     win.document.write(`<!DOCTYPE html><html><head><title>${doc.name}</title>
       <style>body{margin:0;font-family:sans-serif;background:#111;color:#eee;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px}
       a{color:#7c6af5;font-size:15px}</style></head>
       <body><div style="font-size:48px">${doc.type==='application/pdf'?'📄':'📎'}</div>
       <div>${doc.name}</div>
-      <a href="${doc.data}" download="${doc.name}">⬇️ Baixar arquivo</a><script>
-// Animação: azul escuro → azul → branco → vermelho → sempre em frente
-(function() {
-  var cores = ["#0a1a6b","#1a3aff","#ffffff","#cc0000"];
-  var idx = 0;
-  function proxCor() {
-    idx = (idx + 1) % cores.length;
-    var el = document.querySelector(".auth-left");
-    if (el) el.style.backgroundColor = cores[idx];
-  }
-  document.addEventListener("DOMContentLoaded", function() {
-    var el = document.querySelector(".auth-left");
-    if (el) { el.style.backgroundColor = cores[0]; setInterval(proxCor, 1600); }
-  });
-})();
-</script>
-</body></html>`);
+      <a href="${doc.data}" download="${doc.name}">⬇️ Baixar arquivo</a></body></html>`);
   }
 }
 
@@ -4026,23 +3991,7 @@ function gerarDocumento(idx) {
     'function renderizarDocs(){var area=document.getElementById("area-docs");var secao=document.getElementById("secao-docs");var cats=Object.keys(docsCategorias).filter(function(c){return docsCategorias[c].length>0;});if(!cats.length){secao.style.display="none";return;}secao.style.display="block";var h="";cats.forEach(function(cat){var docs=docsCategorias[cat];var imgs=docs.filter(function(d){return d.type&&d.type.startsWith("image/");});var arqs=docs.filter(function(d){return !d.type||!d.type.startsWith("image/");});h+="<div style=margin-bottom:20px><div style=font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:8px>"+cat+"</div>";if(imgs.length){h+="<div style=display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px>";imgs.forEach(function(img){h+="<div style=text-align:center><img src="+img.data+" style=max-width:180px;max-height:140px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;display:block><div style=font-size:9px;color:#9ca3af;margin-top:3px>"+img.name+"</div></div>";});h+="</div>";}arqs.forEach(function(a){var ext=a.name.split(".").pop().toUpperCase();h+="<div style=display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f3f4f6;border-radius:5px;margin-bottom:4px;font-size:11px><span style=background:#1d4ed8;color:#fff;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700>"+ext+"</span> "+a.name+"</div>";});h+="</div>";});area.innerHTML=h;}' +
     'inicializarDocs();';
 
-  html = html + css + corpo + '<script>
-// Animação: azul escuro → azul → branco → vermelho → sempre em frente
-(function() {
-  var cores = ["#0a1a6b","#1a3aff","#ffffff","#cc0000"];
-  var idx = 0;
-  function proxCor() {
-    idx = (idx + 1) % cores.length;
-    var el = document.querySelector(".auth-left");
-    if (el) el.style.backgroundColor = cores[idx];
-  }
-  document.addEventListener("DOMContentLoaded", function() {
-    var el = document.querySelector(".auth-left");
-    if (el) { el.style.backgroundColor = cores[0]; setInterval(proxCor, 1600); }
-  });
-})();
-</script>
-</body></html>';
+  html = html + css + corpo + '</body></html>';
   html = html.replace('__DOCS_INICIAIS__', JSON.stringify(docsParaDoc));
   html = html.replace('__SCRIPT_CODE__', scriptCode);
 
@@ -4286,20 +4235,19 @@ function limparDestaquesRisco(){
   };
 })();
 </script>
-<script>
-// ── GRID 3D com perspectiva pulsante + troca de cor de fundo ──
-(function() {
 
-  // --- Troca de cor de fundo (sempre em frente, nunca volta) ---
-  var bgCores = ["#0a1a6b","#1a3aff","#ffffff","#cc0000"];
+<script>
+(function() {
+  // Cores: azul escuro -> azul -> branco -> vermelho -> (loop sem volta)
+  var bgCores = ['#0a1a6b', '#1a3aff', '#ffffff', '#cc0000'];
   var bgIdx = 0;
+
   function proxCorBg() {
     bgIdx = (bgIdx + 1) % bgCores.length;
-    var el = document.querySelector(".auth-left");
+    var el = document.querySelector('.auth-left');
     if (el) el.style.backgroundColor = bgCores[bgIdx];
   }
 
-  // --- Grid 3D pulsante no canvas ---
   function initGrid() {
     var canvas = document.getElementById('grid3d-canvas');
     if (!canvas) return;
@@ -4307,77 +4255,69 @@ function limparDestaquesRisco(){
     var ctx = canvas.getContext('2d');
 
     function resize() {
-      canvas.width  = parent.offsetWidth;
+      canvas.width = parent.offsetWidth;
       canvas.height = parent.offsetHeight;
     }
     resize();
     window.addEventListener('resize', resize);
 
-    var t = 0;
+    var offset = 0;
+    var COLS = 11;
+    var LINHAS = 14;
 
     function draw() {
       var W = canvas.width;
       var H = canvas.height;
       ctx.clearRect(0, 0, W, H);
 
-      // ponto de fuga = centro do painel
       var vpX = W / 2;
-      var vpY = H / 2;
+      var vpY = H * 0.3; // ponto de fuga no terco superior
 
-      // pulso: oscila entre 0.3 e 1.0 — vai pro fundo e volta pra frente
-      var pulse = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t));
+      // avanca sempre em frente — nunca volta
+      offset = (offset + 0.012) % 1;
 
-      var cols = 10;
-      var rows = 10;
-      var spread = Math.min(W, H) * 1.2; // tamanho do grid em perspectiva máxima
-
-      ctx.strokeStyle = 'rgba(180,210,255,0.55)';
-      ctx.lineWidth = 0.8;
-
-      // Desenha linhas verticais do grid em perspectiva
-      for (var c = 0; c <= cols; c++) {
-        var fx = (c / cols - 0.5) * spread * pulse;
-        // ponto distante (no fundo)
-        var farX = vpX + fx * 0.15;
-        var farY = vpY - spread * 0.45 * pulse;
-        // ponto próximo (na frente)
-        var nearX = vpX + fx;
-        var nearY = vpY + spread * 0.55 * pulse;
-
+      // linhas verticais (rayos do ponto de fuga ate borda inferior)
+      ctx.strokeStyle = 'rgba(180, 210, 255, 0.55)';
+      ctx.lineWidth = 2;
+      for (var c = 0; c <= COLS; c++) {
+        var frac = c / COLS;
+        var nearX = (frac - 0.5) * W * 1.6 + vpX;
         ctx.beginPath();
-        ctx.moveTo(farX, farY);
-        ctx.lineTo(nearX, nearY);
+        ctx.moveTo(vpX, vpY);
+        ctx.lineTo(nearX, H);
         ctx.stroke();
       }
 
-      // Desenha linhas horizontais do grid em perspectiva
-      for (var r = 0; r <= rows; r++) {
-        var fy = (r / rows); // 0 = fundo, 1 = frente
-        // interpolação perspectiva
-        var lx = vpX + (-spread * 0.5 * pulse) * (1 - (1 - fy) * 0.85);
-        var rx = vpX + ( spread * 0.5 * pulse) * (1 - (1 - fy) * 0.85);
-        var ly = vpY + (-spread * 0.45 + spread * 1.0 * fy) * pulse;
+      // linhas horizontais que saem do fundo (ponto de fuga) e vem pra frente
+      for (var r = 0; r < LINHAS; r++) {
+        var frac2 = ((r / LINHAS) + offset) % 1;
+        // perspectiva quadratica: perto da camera cresce rapido
+        var p = frac2 * frac2;
+
+        var y = vpY + (H - vpY) * frac2;
+        var halfW = W * 0.8 * p;
+
+        ctx.globalAlpha = 0.1 + p * 0.65;
+        ctx.lineWidth = 1 + p * 3.5;
+        ctx.strokeStyle = 'rgba(180, 210, 255, 1)';
 
         ctx.beginPath();
-        ctx.moveTo(lx, ly);
-        ctx.lineTo(rx, ly);
+        ctx.moveTo(vpX - halfW, y);
+        ctx.lineTo(vpX + halfW, y);
         ctx.stroke();
       }
 
-      t += 0.018; // velocidade da pulsação
+      ctx.globalAlpha = 1;
       requestAnimationFrame(draw);
     }
 
     draw();
   }
 
-  document.addEventListener("DOMContentLoaded", function() {
-    // Cor de fundo inicial
-    var el = document.querySelector(".auth-left");
+  document.addEventListener('DOMContentLoaded', function() {
+    var el = document.querySelector('.auth-left');
     if (el) el.style.backgroundColor = bgCores[0];
     setInterval(proxCorBg, 1600);
-
-    // Inicia o grid 3D
     initGrid();
   });
 })();
