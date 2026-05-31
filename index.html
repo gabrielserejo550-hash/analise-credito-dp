@@ -3674,7 +3674,11 @@ function filtrarPorPeriodo(lista) {
     const parteData = dataStr.split(',')[0].trim();
     const partes = parteData.split('/');
     if (partes.length !== 3) return true;
-    const dataItem = new Date(parseInt(partes[2]), parseInt(partes[1])-1, parseInt(partes[0]));
+    const dia = parseInt(partes[0]);
+    const mes = parseInt(partes[1]) - 1;
+    const ano = parseInt(partes[2].trim().split(' ')[0]); // remove hora se colada
+    if (isNaN(dia) || isNaN(mes) || isNaN(ano)) return true;
+    const dataItem = new Date(ano, mes, dia);
     dataItem.setHours(0,0,0,0);
     if (_periodoAtivo === 'hoje')   return dataItem.getTime() === hoje.getTime();
     if (_periodoAtivo === 'semana') { const ini = new Date(hoje); ini.setDate(hoje.getDate()-hoje.getDay()); return dataItem >= ini && dataItem <= hoje; }
