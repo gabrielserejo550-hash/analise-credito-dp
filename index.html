@@ -3383,14 +3383,28 @@ async function buscarAnalises() {
       return;
     }
 
-    _resultadosAtuais = r.analises || [];
-    const total = r.total || _resultadosAtuais.length;
+    let todasAnalises = r.analises || [];
+
+    // Filtrar por texto se houver termo
+    if (termo) {
+      const termoLower = termo.toLowerCase();
+      todasAnalises = todasAnalises.filter(a => {
+        if (campo === 'cliente') return (a['Cliente (Razão Social)']||'').toLowerCase().includes(termoLower);
+        if (campo === 'cnpj')    return (a['CNPJ']||'').toLowerCase().includes(termoLower);
+        if (campo === 'analista') return (a['Analista Responsável']||'').toLowerCase().includes(termoLower);
+        // todos os campos
+        return Object.values(a).some(v => String(v).toLowerCase().includes(termoLower));
+      });
+    }
+
+    _resultadosAtuais = todasAnalises;
+    const total = _resultadosAtuais.length;
 
     status.style.color = 'var(--green)';
     if (termo) {
-      status.textContent = `✅ ${_resultadosAtuais.length} resultado(s) para "${termo}"${total > _resultadosAtuais.length ? ` (de ${total} análises)` : ''}.`;
+      status.textContent = `✅ ${total} resultado(s) para "${termo}".`;
     } else {
-      status.textContent = `✅ ${_resultadosAtuais.length} análise(s) encontrada(s).`;
+      status.textContent = `✅ ${total} análise(s) encontrada(s).`;
     }
 
     // Aplica filtro de período se ativo
@@ -3656,7 +3670,9 @@ function filtrarPorPeriodo(lista) {
   return lista.filter(a => {
     const dataStr = (a['Data']||'').trim();
     if (!dataStr || dataStr === '—') return true;
-    const partes = dataStr.split('/');
+    // Aceita "dd/mm/aaaa" ou "dd/mm/aaaa, hh:mm:ss"
+    const parteData = dataStr.split(',')[0].trim();
+    const partes = parteData.split('/');
     if (partes.length !== 3) return true;
     const dataItem = new Date(parseInt(partes[2]), parseInt(partes[1])-1, parseInt(partes[0]));
     dataItem.setHours(0,0,0,0);
