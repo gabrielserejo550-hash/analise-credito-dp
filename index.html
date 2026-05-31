@@ -1727,7 +1727,7 @@
 // ══════════════════════════════════════════════════════════
 // GOOGLE SHEETS CONFIG
 // ══════════════════════════════════════════════════════════
-const GS_URL = 'https://script.google.com/macros/s/AKfycbzs7hjwBTVBHTW5LZGaD4G2OIUu0abvIxTd82_CccHAghpnYbVtFbXl0wvOr1C1FFjN/exec';
+const GS_URL = 'https://script.google.com/macros/s/AKfycbzcBElseYNlBisPMf3RyEBZjDFuRQodBwLS2K_jnU4W-UIrpoftk3WKrkIBjgJ-7EZe/exec';
 
 // Variáveis globais declaradas no topo para evitar erros de referência
 let registros = [];
@@ -1746,7 +1746,7 @@ function gsPost(payload) {
       const s = document.getElementById(cbName);
       if (s) s.remove();
       resolve({ ok: false, erro: 'Timeout — verifique a URL do Apps Script.' });
-    }, 40000);
+    }, 90000);
     window[cbName] = function(data) {
       clearTimeout(timer);
       delete window[cbName];
@@ -1768,9 +1768,9 @@ function gsPost(payload) {
   });
 }
 
-// Upload via JSONP com base64 em chunks para evitar limite de URL
+// Upload via JSONP com base64 em micro-chunks (20KB)
 async function gsPostFile(payload) {
-  const CHUNK_SIZE = 100000; // 100KB por chunk
+  const CHUNK_SIZE = 20000; // 20KB — bem abaixo do limite de URL
   const base64Full = payload.base64Data || '';
   const totalChunks = Math.ceil(base64Full.length / CHUNK_SIZE) || 1;
   const uploadId = 'up_' + Date.now() + '_' + Math.floor(Math.random()*9999);
@@ -1778,17 +1778,24 @@ async function gsPostFile(payload) {
   for (let i = 0; i < totalChunks; i++) {
     const chunk = base64Full.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
     const isLast = (i === totalChunks - 1);
+    // Enviar apenas os campos essenciais + chunk, sem o base64Full completo
     const chunkPayload = {
-      ...payload,
-      base64Data: chunk,
+      action:      'upload_drive',
+      nomePasta:   payload.nomePasta,
+      nomeArquivo: payload.nomeArquivo,
+      categoria:   payload.categoria,
+      mimeType:    payload.mimeType,
+      base64Data:  chunk,
       uploadId,
-      chunkIndex: i,
+      chunkIndex:  i,
       totalChunks,
       isLastChunk: isLast
     };
     const r = await gsPost(chunkPayload);
-    if (!r.ok && !r.aguardando) return r;
+    if (!r.ok && !r.aguardando) return { ok: false, erro: r.erro || 'Falha no chunk ' + i };
     if (isLast) return r;
+    // Pequena pausa entre chunks para não sobrecarregar
+    await new Promise(res => setTimeout(res, 300));
   }
   return { ok: false, erro: 'Erro no upload chunked.' };
 }
