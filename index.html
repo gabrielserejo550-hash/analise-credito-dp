@@ -2827,6 +2827,8 @@ async function salvarTudo() {
         } else {
           totalErros++;
           driveOk = false;
+          console.error('DRIVE ERRO arquivo ' + arq.name + ':', JSON.stringify(r));
+          showGsStatus('error', '❌ Erro Drive: ' + (r && r.erro ? r.erro : 'sem resposta') + ' | arquivo: ' + arq.name);
         }
       } catch(e) {
         totalErros++;
