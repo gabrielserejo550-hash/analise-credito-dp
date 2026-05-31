@@ -1727,7 +1727,7 @@
 // ══════════════════════════════════════════════════════════
 // GOOGLE SHEETS CONFIG
 // ══════════════════════════════════════════════════════════
-const GS_URL = 'https://script.google.com/macros/s/AKfycbxRqE4xkXkPAmTrTWs2DEbAcOum-iovSSBs2uPBnay0qEbv4ngU0t5QKnp9hZcy68U/exec';
+const GS_URL = 'https://script.google.com/macros/s/AKfycbzs7hjwBTVBHTW5LZGaD4G2OIUu0abvIxTd82_CccHAghpnYbVtFbXl0wvOr1C1FFjN/exec';
 
 // Variáveis globais declaradas no topo para evitar erros de referência
 let registros = [];
@@ -1768,20 +1768,29 @@ function gsPost(payload) {
   });
 }
 
-// Para upload de arquivos — usa fetch POST para evitar limite de URL
+// Upload via JSONP com base64 em chunks para evitar limite de URL
 async function gsPostFile(payload) {
-  try {
-    const resp = await fetch(GS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      redirect: 'follow'
-    });
-    const text = await resp.text();
-    try { return JSON.parse(text); } catch { return { ok: false, erro: 'Resposta inválida.' }; }
-  } catch(e) {
-    return { ok: false, erro: 'Erro de conexão: ' + e.message };
+  const CHUNK_SIZE = 100000; // 100KB por chunk
+  const base64Full = payload.base64Data || '';
+  const totalChunks = Math.ceil(base64Full.length / CHUNK_SIZE) || 1;
+  const uploadId = 'up_' + Date.now() + '_' + Math.floor(Math.random()*9999);
+
+  for (let i = 0; i < totalChunks; i++) {
+    const chunk = base64Full.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+    const isLast = (i === totalChunks - 1);
+    const chunkPayload = {
+      ...payload,
+      base64Data: chunk,
+      uploadId,
+      chunkIndex: i,
+      totalChunks,
+      isLastChunk: isLast
+    };
+    const r = await gsPost(chunkPayload);
+    if (!r.ok && !r.aguardando) return r;
+    if (isLast) return r;
   }
+  return { ok: false, erro: 'Erro no upload chunked.' };
 }
 
 // ══════════════════════════════════════════════════════════
