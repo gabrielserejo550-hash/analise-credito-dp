@@ -2982,6 +2982,15 @@ async function doAdminLogin() {
   btn.disabled = true; btn.textContent = 'Verificando...';
   try {
     const passHash = await hashPass(pass);
+    // Verifica localmente primeiro (hash gerado pelo próprio navegador)
+    const LOCAL_HASH = '69fc3b1a26ce2ce6da35e4d38e2ce6b70171fb3b903a37f58252390b8ad1fce1';
+    if (passHash === LOCAL_HASH) {
+      document.getElementById('admin-lock').style.display = 'none';
+      document.getElementById('admin-panel').style.display = 'block';
+      renderAdminUsers();
+      return;
+    }
+    // Fallback: verifica no Apps Script
     const r = await gsPost({ action:'login_admin', passHash });
     if (!r.ok) {
       showAuthError('adm-error', r.erro || 'Senha de administrador incorreta.');
