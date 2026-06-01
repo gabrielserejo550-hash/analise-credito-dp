@@ -112,15 +112,17 @@
   .auth-left-brand h1 {
     font-size: 24px;
     font-weight: 700;
-    color: var(--text);
+    color: #ffffff;
     letter-spacing: -0.5px;
     margin-bottom: 6px;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.9), 0 0 24px rgba(0,0,0,0.7);
   }
   .auth-left-brand p {
     font-size: 12px;
-    color: var(--text3);
+    color: #e0e8ff;
     font-family: var(--mono);
     letter-spacing: 0.5px;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.9);
   }
 
   .auth-left-tagline {
@@ -137,22 +139,24 @@
     margin-bottom: 20px;
   }
   .auth-kpi {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.18);
     border-radius: var(--radius);
     padding: 14px;
     text-align: center;
+    backdrop-filter: blur(4px);
   }
   .auth-kpi-val {
     font-size: 20px;
     font-weight: 700;
     font-family: var(--mono);
-    color: var(--accent);
+    color: #7dd3fc;
     display: block;
+    text-shadow: 0 0 10px rgba(125,211,252,0.5);
   }
   .auth-kpi-lbl {
     font-size: 10px;
-    color: var(--text3);
+    color: #cbd5e1;
     font-family: var(--mono);
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -161,20 +165,22 @@
   }
 
   .auth-feature-list {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.18);
     border-radius: var(--radius);
     padding: 16px 18px;
+    backdrop-filter: blur(4px);
   }
   .auth-feature-list li {
     display: flex;
     align-items: center;
     gap: 10px;
     font-size: 12px;
-    color: var(--text2);
+    color: #e2e8f4;
     font-family: var(--mono);
     padding: 6px 0;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
   }
   .auth-feature-list li:last-child { border-bottom: none; }
   .auth-feature-list li span.dot {
