@@ -1739,6 +1739,9 @@
 // ══════════════════════════════════════════════════════════
 // GOOGLE SHEETS CONFIG
 // ══════════════════════════════════════════════════════════
+// ⚠️ SEGURANÇA: esta URL é pública — qualquer pessoa pode chamá-la diretamente.
+// Para proteger, adicione um SHARED_SECRET no Apps Script e valide em cada requisição.
+// Exemplo: gsPost({ action:'login', username, passHash, secret: 'SUA_CHAVE_SECRETA' })
 const GS_URL = 'https://script.google.com/macros/s/AKfycbwLN_XiKLFPVPJHoWmC5UOgEGCKc7x8_wJkkF5nmlHppNLGxM7kZLIg6h09kYip5BgD/exec';
 
 // Variáveis globais declaradas no topo para evitar erros de referência
@@ -1784,8 +1787,10 @@ function gsPost(payload) {
 // ══════════════════════════════════════════════════════════
 // GOOGLE DRIVE API DIRETA (OAuth 2.0)
 // ══════════════════════════════════════════════════════════
-const DRIVE_CLIENT_ID = '932765469932-mqve3rpe3d0bj1hve44idf056ffuj2g8.apps.googleusercontent.com';
-const DRIVE_API_KEY   = 'AIzaSyC0sJnEzDgZK3G0CcQHgrOLojZv4JUQggc';
+// ⚠️ SEGURANÇA: Preencha o Client ID abaixo. Nunca versione este arquivo com credenciais reais.
+// Client ID: Google Cloud Console → APIs e Serviços → Credenciais → Seu OAuth 2.0 Client ID
+const DRIVE_CLIENT_ID = ''; // << COLE SEU CLIENT ID AQUI
+// DRIVE_API_KEY removida: o fluxo OAuth2 com initTokenClient não requer API Key no cliente.
 const DRIVE_SCOPE     = 'https://www.googleapis.com/auth/drive.file';
 const PASTA_RAIZ_NOME = 'DP';
 
@@ -1884,10 +1889,9 @@ function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY
 function saveSession(u) { localStorage.setItem(SESSION_KEY, JSON.stringify(u)); }
 function clearSession() { localStorage.removeItem(SESSION_KEY); }
 
-function hashPass(pass) {
-  let h = 0;
-  for (let i = 0; i < pass.length; i++) h = Math.imul(31, h) + pass.charCodeAt(i) | 0;
-  return h.toString(36);
+async function hashPass(pass) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 function formatCPF(input) {
   let v = input.value.replace(/\D/g,'').substring(0,11);
@@ -1943,16 +1947,14 @@ async function doLogin() {
   if (!username||!password) { showAuthError('login-error','Preencha usuário e senha.'); return; }
   setBtnLoading('login-btn-el',true,'Verificando...');
   try {
-    const r = await gsPost({ action:'buscar_usuarios' });
-    if (!r.ok) { showAuthError('login-error','Erro ao conectar com o banco de dados.'); return; }
-    const user = (r.users||[]).find(u => u.username.toLowerCase()===username.toLowerCase());
-    if (!user) { showAuthError('login-error','Usuário não encontrado.'); return; }
-    if (user.passHash !== hashPass(password)) { showAuthError('login-error','Senha incorreta.'); return; }
-    const sessao = { name:user.name, cpf:user.cpf, username:user.username };
+    // ✅ SEGURANÇA: autenticação feita no servidor — nunca baixa todos os usuários para o cliente
+    const passHash = await hashPass(password);
+    const r = await gsPost({ action:'login', username, passHash });
+    if (!r.ok) { showAuthError('login-error', r.erro || 'Usuário ou senha incorretos.'); return; }
+    const sessao = { name: r.name, cpf: r.cpf, username: r.username };
     saveSession(sessao);
-    if (user.primeiro_acesso === 'sim') {
-      // Mostrar step 2 de redefinição dentro da aba "Entrar"
-      _firstAccessUsername = user.username;
+    if (r.primeiro_acesso === 'sim') {
+      _firstAccessUsername = r.username;
       document.getElementById('login-step1').style.display = 'none';
       document.getElementById('login-step2').style.display = 'block';
       document.getElementById('fa-newpass').value = '';
@@ -1986,7 +1988,7 @@ async function doRegister() {
   if (pass!==pass2) { showAuthError('reg-error','As senhas não coincidem.'); return; }
   setBtnLoading('reg-btn-el',true,'Cadastrando...');
   try {
-    const r = await gsPost({ action:'cadastrar_usuario', name, cpf:cpfRaw, username, passHash:hashPass(pass) });
+    const r = await gsPost({ action:'cadastrar_usuario', name, cpf:cpfRaw, username, passHash: await hashPass(pass) });
     if (!r.ok) { showAuthError('reg-error', r.erro||'Erro ao cadastrar.'); return; }
     ['reg-name','reg-cpf','reg-user','reg-pass','reg-pass2'].forEach(id => document.getElementById(id).value='');
     showAuthSuccess('reg-success',`✅ Conta criada para ${name}! Vá para "Entrar".`);
@@ -2018,7 +2020,7 @@ async function admCreateUser() {
   const btn = document.getElementById('adm-create-btn');
   btn.textContent = '⏳ Criando...'; btn.disabled = true;
   try {
-    const r = await gsPost({ action:'cadastrar_usuario', name, cpf:cpfRaw, username, passHash:hashPass(pass), primeiro_acesso:'sim' });
+    const r = await gsPost({ action:'cadastrar_usuario', name, cpf:cpfRaw, username, passHash: await hashPass(pass), primeiro_acesso:'sim' });
     if (!r.ok) return showErr(r.erro || 'Erro ao cadastrar.');
     ['adm-reg-name','adm-reg-cpf','adm-reg-user','adm-reg-pass'].forEach(id => document.getElementById(id).value = '');
     okEl.textContent = `✅ Usuário "${username}" criado com sucesso! Senha inicial definida.`;
@@ -2071,11 +2073,9 @@ async function verifyIdentity() {
   if (!username||cpfClean.length!==11) { showAuthError('rec-error','Preencha o usuário e o CPF completo.'); return; }
   setBtnLoading('rec-btn-el',true,'Verificando...');
   try {
-    const r = await gsPost({ action:'buscar_usuarios' });
-    if (!r.ok) { showAuthError('rec-error','Erro de conexão.'); return; }
-    const user = (r.users||[]).find(u => u.username.toLowerCase()===username.toLowerCase());
-    if (!user) { showAuthError('rec-error','Usuário não encontrado.'); return; }
-    if (cleanCPF(user.cpf)!==cpfClean) { showAuthError('rec-error','CPF não confere com o cadastro.'); return; }
+    // ✅ SEGURANÇA: verificação feita no servidor — CPF nunca é comparado no cliente
+    const r = await gsPost({ action:'verificar_identidade', username, cpf: cpfClean });
+    if (!r.ok) { showAuthError('rec-error', r.erro || 'Usuário ou CPF não conferem.'); return; }
     _recoverUsername = username;
     document.getElementById('recover-step1').style.display='none';
     document.getElementById('recover-step2').style.display='block';
@@ -2094,7 +2094,7 @@ async function doResetPassword() {
   if (newpass!==newpass2) { showAuthError('rec-error','As senhas não coincidem.'); return; }
   setBtnLoading('rec-save-btn-el',true,'Salvando...');
   try {
-    const r = await gsPost({ action:'atualizar_senha', username:_recoverUsername, passHash:hashPass(newpass) });
+    const r = await gsPost({ action:'atualizar_senha', username:_recoverUsername, passHash: await hashPass(newpass) });
     if (!r.ok) { showAuthError('rec-error','Erro ao atualizar senha.'); return; }
     _recoverUsername = null;
     showAuthSuccess('rec-success','✅ Senha redefinida! Redirecionando...');
@@ -2150,7 +2150,7 @@ async function doFirstAccessReset() {
   const btn = document.getElementById('fa-btn');
   btn.disabled = true; btn.textContent = '⏳ Salvando...';
   try {
-    const r = await gsPost({ action:'atualizar_senha', username:_firstAccessUsername, passHash:hashPass(newpass), primeiro_acesso:'nao' });
+    const r = await gsPost({ action:'atualizar_senha', username:_firstAccessUsername, passHash: await hashPass(newpass), primeiro_acesso:'nao' });
     if (!r.ok) { showErr('Erro ao salvar senha. Tente novamente.'); return; }
     const sessao = getSession();
     _firstAccessUsername = null;
@@ -2973,19 +2973,30 @@ function baixarXLSX() {
 // ══════════════════════════════════════════════════════════
 // ADMINISTRADOR
 // ══════════════════════════════════════════════════════════
-const ADM_PASS_HASH = hashPass('dp2025adm'); // senha padrão: dp2025adm
+// ✅ SEGURANÇA: senha de admin validada no servidor, não no cliente.
+// A senha padrão 'dp2025adm' foi removida daqui. Configure ADM_PASS_HASH_SHA256 no Apps Script.
 
-function doAdminLogin() {
+async function doAdminLogin() {
   const pass = document.getElementById('adm-pass').value;
   if (!pass) { showAuthError('adm-error','Informe a senha.'); return; }
-  if (hashPass(pass) !== ADM_PASS_HASH) {
-    showAuthError('adm-error','Senha de administrador incorreta.');
-    document.getElementById('adm-pass').value = '';
-    return;
+  const btn = document.getElementById('adm-login-btn');
+  btn.disabled = true; btn.textContent = 'Verificando...';
+  try {
+    const passHash = await hashPass(pass);
+    const r = await gsPost({ action:'login_admin', passHash });
+    if (!r.ok) {
+      showAuthError('adm-error', r.erro || 'Senha de administrador incorreta.');
+      document.getElementById('adm-pass').value = '';
+      return;
+    }
+    document.getElementById('admin-lock').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    renderAdminUsers();
+  } catch(e) {
+    showAuthError('adm-error','Erro de conexão.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Acessar área do administrador →';
   }
-  document.getElementById('admin-lock').style.display = 'none';
-  document.getElementById('admin-panel').style.display = 'block';
-  renderAdminUsers();
 }
 
 function lockAdmin() {
