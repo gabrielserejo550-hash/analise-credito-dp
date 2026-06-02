@@ -4101,22 +4101,31 @@ function copiar(id) {
 function formatCNPJouCPF(el){
   const digits = el.value.replace(/\D/g,'');
   const hint   = document.getElementById('cnpj-hint');
+
+  // Enquanto tem até 11 dígitos: formata como CPF provisoriamente
+  // Se já passou de 11 dígitos: formata como CNPJ
   if (digits.length <= 11) {
-    // Formatar como CPF
-    el.maxLength = 14;
-    let v = digits.substring(0,11);
+    // Formatar como CPF (provisório — ainda pode virar CNPJ se o usuário continuar digitando)
+    el.maxLength = 18; // permite continuar digitando para virar CNPJ
+    let v = digits;
     if(v.length>9)      v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2}).*/,'$1.$2.$3-$4');
     else if(v.length>6) v = v.replace(/^(\d{3})(\d{3})(\d{0,3}).*/,'$1.$2.$3');
     else if(v.length>3) v = v.replace(/^(\d{3})(\d{0,3}).*/,'$1.$2');
     el.value = v;
     if (digits.length === 11) {
-      el.classList.add('campo-valido'); el.classList.remove('campo-invalido');
-      hint.textContent = '✔ CPF'; hint.className = 'validacao-hint ok';
+      // Mostra CPF válido, mas ainda permite continuar digitando para CNPJ
+      if(validarCPF(digits)){
+        el.classList.add('campo-valido'); el.classList.remove('campo-invalido');
+        hint.textContent = '✔ CPF — ou continue digitando para CNPJ'; hint.className = 'validacao-hint ok';
+      } else {
+        el.classList.remove('campo-valido','campo-invalido');
+        hint.textContent = ''; hint.className = 'validacao-hint';
+      }
     } else {
-      el.classList.remove('campo-valido','campo-invalido'); hint.className = 'validacao-hint';
+      el.classList.remove('campo-valido','campo-invalido'); hint.className = 'validacao-hint'; hint.textContent='';
     }
   } else {
-    // Formatar como CNPJ
+    // Formatar como CNPJ (mais de 11 dígitos)
     el.maxLength = 18;
     let v = digits.substring(0,14);
     if(v.length>12)     v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/,'$1.$2.$3/$4-$5');
@@ -4124,11 +4133,12 @@ function formatCNPJouCPF(el){
     else if(v.length>5) v = v.replace(/^(\d{2})(\d{3})(\d{0,3}).*/,'$1.$2.$3');
     else if(v.length>2) v = v.replace(/^(\d{2})(\d{0,3}).*/,'$1.$2');
     el.value = v;
-    if (digits.length === 14) {
+    if (digits.length >= 14) {
       el.classList.add('campo-valido'); el.classList.remove('campo-invalido');
       hint.textContent = '✔ CNPJ'; hint.className = 'validacao-hint ok';
     } else {
-      el.classList.remove('campo-valido','campo-invalido'); hint.className = 'validacao-hint';
+      el.classList.remove('campo-valido','campo-invalido');
+      hint.textContent = 'Digitando CNPJ...'; hint.className = 'validacao-hint';
     }
   }
 }
