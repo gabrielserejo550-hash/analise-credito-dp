@@ -4084,13 +4084,8 @@ function formatCNPJouCPF(el){
     else if(v.length>3) v = v.replace(/^(\d{3})(\d{0,3}).*/,'$1.$2');
     el.value = v;
     if (digits.length === 11) {
-      if (validarCPF(digits)) {
-        el.classList.add('campo-valido'); el.classList.remove('campo-invalido');
-        hint.textContent = '✔ CPF válido'; hint.className = 'validacao-hint ok';
-      } else {
-        el.classList.add('campo-invalido'); el.classList.remove('campo-valido');
-        hint.textContent = '✖ CPF inválido'; hint.className = 'validacao-hint erro';
-      }
+      el.classList.add('campo-valido'); el.classList.remove('campo-invalido');
+      hint.textContent = '✔ CPF'; hint.className = 'validacao-hint ok';
     } else {
       el.classList.remove('campo-valido','campo-invalido'); hint.className = 'validacao-hint';
     }
@@ -4104,13 +4099,8 @@ function formatCNPJouCPF(el){
     else if(v.length>2) v = v.replace(/^(\d{2})(\d{0,3}).*/,'$1.$2');
     el.value = v;
     if (digits.length === 14) {
-      if (validarCNPJ(digits)) {
-        el.classList.add('campo-valido'); el.classList.remove('campo-invalido');
-        hint.textContent = '✔ CNPJ válido'; hint.className = 'validacao-hint ok';
-      } else {
-        el.classList.add('campo-invalido'); el.classList.remove('campo-valido');
-        hint.textContent = '✖ CNPJ inválido'; hint.className = 'validacao-hint erro';
-      }
+      el.classList.add('campo-valido'); el.classList.remove('campo-invalido');
+      hint.textContent = '✔ CNPJ'; hint.className = 'validacao-hint ok';
     } else {
       el.classList.remove('campo-valido','campo-invalido'); hint.className = 'validacao-hint';
     }
