@@ -2405,22 +2405,13 @@ function calcularResultado(tipo) {
         ? 'Empresa com até 5 meses. Liberar R$ 4.000 com entrada de R$ 500.'
         : 'Empresa com até 5 meses. Limite máximo de R$ 3.500.';
     } else {
-      let mult = classif === 'baixo' ? 2.5 : classif === 'medio' ? 2.0 : 1.5;
-      if (somaNfs < 1000) valorRec = score <= 30 ? 4000 : 3500;
-      else if (somaNfs <= 2000) valorRec = Math.min(Math.round(mediaNfs * mult / 100) * 100, 5000);
-      else valorRec = Math.round(mediaNfs * mult / 100) * 100;
+      // Cliente limpo + empresa com 6 meses ou mais
+      // Cálculo: soma das NFs × 30%, travado entre R$ 3.500 e R$ 9.000
+      const calcNfs = Math.round((somaNfs * 0.30) / 100) * 100;
+      valorRec = Math.max(3500, Math.min(9000, calcNfs));
 
-      if (classif === 'critico') {
-        decisao = 'Recusado';
-        condicao = 'Risco crítico. Análise não recomenda liberação.';
-        valorRec = 0;
-      } else if (classif === 'alto') {
-        decisao = 'Aprovação superior';
-        condicao = 'Risco alto. Encaminhar para aprovação do gestor.';
-      } else {
-        decisao = 'Liberado';
-        condicao = `Crédito liberado em boleto. Valor recomendado: ${fmt(valorRec)}.`;
-      }
+      decisao = 'Liberado';
+      condicao = `Crédito liberado em boleto. Valor recomendado: ${fmt(valorRec)}.`;
     }
 
   } else {
